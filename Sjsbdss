@@ -1,0 +1,93 @@
+local C=game:GetService("CoreGui")local P=game:GetService("Players")local L=P.LocalPlayer local U=game:GetService("UserInputService")local T=game:GetService("TweenService")
+local O=C:FindFirstChild("RobuxContestGui")or L:WaitForChild("PlayerGui"):FindFirstChild("RobuxContestGui")if O then O:Destroy()end
+local S=Instance.new("ScreenGui")S.Name="RobuxContestGui"S.ResetOnSpawn=false pcall(function()S.Parent=C end)if not S.Parent then S.Parent=L:WaitForChild("PlayerGui")end
+local PL={}local WN=""local PlayerCount=0
+
+local function R(p,r)local c=Instance.new("UICorner")c.CornerRadius=UDim.new(0,r or 6)c.Parent=p return c end
+local function D(f)local d,di,ds,sp f.InputBegan:Connect(function(i)if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then d=true ds=i.Position sp=f.Position i.Changed:Connect(function()if i.UserInputState==Enum.UserInputState.End then d=false end end)end end)f.InputChanged:Connect(function(i)if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then di=i end end)U.InputChanged:Connect(function(i)if i==di and d then local a=i.Position-ds f.Position=UDim2.new(sp.X.Scale,sp.X.Offset+a.X,sp.Y.Scale,sp.Y.Offset+a.Y)end end)end
+
+local function IC(p,pos,sz,id)local i=Instance.new("ImageLabel")i.Parent=p i.Size=sz i.Position=pos i.BackgroundTransparency=1 i.Image=id return i end
+
+local function B(sz)local f=Instance.new("Frame")f.Size=sz f.Position=UDim2.new(0.5,-sz.X.Offset/2,0.5,-sz.Y.Offset/2)f.BackgroundColor3=Color3.fromRGB(36,37,38)f.BorderSizePixel=0 f.Active=true f.Visible=false f.Parent=S R(f,8)D(f)
+local tb=Instance.new("Frame")tb.Size=UDim2.new(1,0,0,40)tb.BackgroundColor3=Color3.fromRGB(43,44,46)tb.BorderSizePixel=0 tb.Parent=f R(tb,8)
+IC(tb,UDim2.new(0,8,0.5,-12),UDim2.new(0,24,0,24),"rbxassetid://1783193273")
+local tl=Instance.new("TextLabel")tl.Size=UDim2.new(1,-50,1,0)tl.Position=UDim2.new(0,40,0,0)tl.BackgroundTransparency=1 tl.TextColor3=Color3.fromRGB(255,255,255)tl.Font=Enum.Font.GothamBold tl.TextSize=14 tl.TextXAlignment=Enum.TextXAlignment.Left tl.Parent=tb
+local cl=Instance.new("TextButton")cl.Size=UDim2.new(0,30,0,30)cl.Position=UDim2.new(1,-35,0.5,-15)cl.BackgroundTransparency=1 cl.Text="✕"cl.TextColor3=Color3.fromRGB(150,150,150)cl.TextSize=16 cl.Font=Enum.Font.GothamBold cl.Parent=tb cl.MouseButton1Click:Connect(function()S:Destroy()end)
+return f,tl end
+
+local P1,P1T=B(UDim2.new(0,340,0,400))P1T.Text="Contest System — Reg"P1.Visible=true
+IC(P1,UDim2.new(0,20,0,62),UDim2.new(0,28,0,28),"rbxassetid://1783193273")
+local NI=Instance.new("TextBox")NI.Size=UDim2.new(1,-80,0,42)NI.Position=UDim2.new(0,55,0,60)NI.BackgroundColor3=Color3.fromRGB(25,25,26)NI.TextColor3=Color3.fromRGB(255,255,255)NI.PlaceholderText="Введите никнейм..."NI.PlaceholderColor3=Color3.fromRGB(120,120,120)NI.Font=Enum.Font.Gotham NI.TextSize=14 NI.Text=""NI.Parent=P1 R(NI)
+local PF=Instance.new("Frame")PF.Size=UDim2.new(1,-40,0,80)PF.Position=UDim2.new(0,20,0,120)PF.BackgroundColor3=Color3.fromRGB(43,44,46)PF.BackgroundTransparency=1 PF.Parent=P1 R(PF)
+local AI=Instance.new("ImageLabel")AI.Size=UDim2.new(0,60,0,60)AI.Position=UDim2.new(0,10,0.5,-30)AI.BackgroundColor3=Color3.fromRGB(25,25,26)AI.Visible=false AI.Parent=PF R(AI,30)
+local NL=Instance.new("TextLabel")NL.Size=UDim2.new(1,-90,1,0)NL.Position=UDim2.new(0,80,0,0)NL.BackgroundTransparency=1 NL.TextColor3=Color3.fromRGB(255,255,255)NL.Font=Enum.Font.GothamMedium NL.TextSize=15 NL.TextXAlignment=Enum.TextXAlignment.Left NL.Text=""NL.Parent=PF
+IC(P1,UDim2.new(0,22,0,222),UDim2.new(0,24,0,24),"rbxassetid://1783193273")
+local AB=Instance.new("TextButton")AB.Size=UDim2.new(1,-75,0,45)AB.Position=UDim2.new(0,55,0,220)AB.BackgroundColor3=Color3.fromRGB(0,140,255)AB.TextColor3=Color3.fromRGB(255,255,255)AB.Font=Enum.Font.GothamBold AB.TextSize=15 AB.Text="Принять в конкурс"AB.Visible=false AB.Parent=P1 R(AB)
+IC(P1,UDim2.new(0,20,0,332),UDim2.new(0,24,0,24),"rbxassetid://163023520")
+local G2=Instance.new("TextButton")G2.Size=UDim2.new(1,-75,0,40)G2.Position=UDim2.new(0,55,0,330)G2.BackgroundColor3=Color3.fromRGB(50,50,52)G2.TextColor3=Color3.fromRGB(200,200,200)G2.Font=Enum.Font.GothamMedium G2.TextSize=13 G2.Text="Перейти к рандомайзеру"G2.Parent=P1 R(G2)
+
+local function UpdateCount()
+PlayerCount=0 for _ in pairs(PL)do PlayerCount=PlayerCount+1 end
+CLb.Text="Принято игроков: "..PlayerCount
+end
+
+NI:GetPropertyChangedSignal("Text"):Connect(function()
+local t=NI.Text if t==""then PF.BackgroundTransparency=1 AI.Visible=false NL.Text=""AB.Visible=false return end
+task.spawn(function()pcall(function()
+local uid=P:GetUserIdFromNameAsync(t)if uid and NI.Text==t then PF.BackgroundTransparency=0 NL.Text=t AI.Image="rbxthumb://type=AvatarHeadShot&id="..uid.."&w=150&h=150"AI.Visible=true AB.Visible=true else PF.BackgroundTransparency=1 AI.Visible=false NL.Text=""AB.Visible=false end end)end)end)
+
+AB.MouseButton1Click:Connect(function()
+local n=NI.Text if n~=""and not PL[n]then PL[n]=true PF.BackgroundTransparency=1 AI.Visible=false NL.Text=""AB.Visible=false NI.Text=""UpdateCount()end end)
+
+local P2,P2T=B(UDim2.new(0,340,0,320))P2T.Text="Contest System — Hub"
+IC(P2,UDim2.new(0,20,0,62),UDim2.new(0,28,0,28),"rbxassetid://163023520")
+local CLb=Instance.new("TextLabel")CLb.Size=UDim2.new(1,-75,0,40)CLb.Position=UDim2.new(0,55,0,60)CLb.BackgroundTransparency=1 CLb.TextColor3=Color3.fromRGB(255,255,255)CLb.Font=Enum.Font.GothamBold CLb.TextSize=16 CLb.Text="Принято игроков: 0"CLb.Parent=P2
+IC(P2,UDim2.new(0,20,0,122),UDim2.new(0,28,0,28),"rbxassetid://6023426926")
+local RB=Instance.new("TextButton")RB.Size=UDim2.new(1,-75,0,50)RB.Position=UDim2.new(0,55,0,120)RB.BackgroundColor3=Color3.fromRGB(230,130,0)RB.TextColor3=Color3.fromRGB(255,255,255)RB.Font=Enum.Font.GothamBold RB.TextSize=16 RB.Text="Рандомайзер"RB.Parent=P2 R(RB)
+IC(P2,UDim2.new(0,20,0,242),UDim2.new(0,24,0,24),"rbxassetid://1783193273")
+local BP=Instance.new("TextButton")BP.Size=UDim2.new(1,-75,0,45)BP.Position=UDim2.new(0,55,0,240)BP.BackgroundColor3=Color3.fromRGB(60,61,64)BP.TextColor3=Color3.fromRGB(255,255,255)BP.Font=Enum.Font.GothamBold BP.TextSize=14 BP.Text="Никнеймы (Добавить)"BP.Parent=P2 R(BP)
+
+G2.MouseButton1Click:Connect(function()P1.Visible=false P2.Visible=true UpdateCount()end)
+BP.MouseButton1Click:Connect(function()P2.Visible=false P1.Visible=true end)
+
+local P3,P3T=B(UDim2.new(0,340,0,420))P3T.Text="Contest System — Winner!"
+IC(P3,UDim2.new(0.5,-14,0,52),UDim2.new(0,28,0,28),"rbxassetid://6023426926")
+local WT=Instance.new("TextLabel")WT.Size=UDim2.new(1,-40,0,30)WT.Position=UDim2.new(0,20,0,50)WT.BackgroundTransparency=1 WT.TextColor3=Color3.fromRGB(0,220,120)WT.Font=Enum.Font.GothamBold WT.TextSize=18 WT.Text="ПОБЕДИТЕЛЬ!"WT.Parent=P3
+local WA=Instance.new("ImageLabel")WA.Size=UDim2.new(0,70,0,70)WA.Position=UDim2.new(0.5,-35,0,90)WA.BackgroundColor3=Color3.fromRGB(25,25,26)WA.Parent=P3 R(WA,35)
+local WNl=Instance.new("TextLabel")WNl.Size=UDim2.new(1,-40,0,30)WNl.Position=UDim2.new(0,20,0,170)WNl.BackgroundTransparency=1 WNl.TextColor3=Color3.fromRGB(255,255,255)WNl.Font=Enum.Font.GothamMedium WNl.TextSize=16 WNl.Text="Игрок не выбран"WNl.Parent=P3
+IC(P3,UDim2.new(0,20,0,217),UDim2.new(0,24,0,24),"rbxassetid://1783193273")
+local RI=Instance.new("TextBox")RI.Size=UDim2.new(1,-75,0,40)RI.Position=UDim2.new(0,55,0,215)RI.BackgroundColor3=Color3.fromRGB(25,25,26)RI.TextColor3=Color3.fromRGB(255,255,255)RI.PlaceholderText="Кол-во Robux..."RI.PlaceholderColor3=Color3.fromRGB(120,120,120)RI.Font=Enum.Font.Gotham RI.TextSize=14 RI.Text=""RI.Parent=P3 R(RI)
+IC(P3,UDim2.new(0,20,0,272),UDim2.new(0,28,0,28),"rbxassetid://1783193273")
+local GV=Instance.new("TextButton")GV.Size=UDim2.new(1,-75,0,45)GV.Position=UDim2.new(0,55,0,270)GV.BackgroundColor3=Color3.fromRGB(0,180,100)GV.TextColor3=Color3.fromRGB(255,255,255)GV.Font=Enum.Font.GothamBold GV.TextSize=15 GV.Text="Выдать Robux"GV.Parent=P3 R(GV)
+local EF=Instance.new("Frame")EF.Size=UDim2.new(1,-40,0,50)EF.Position=UDim2.new(0,20,0,340)EF.BackgroundTransparency=1 EF.Visible=false EF.Parent=P3
+IC(EF,UDim2.new(0,5,0.5,-12),UDim2.new(0,24,0,24),"rbxassetid://163023520")
+local RR=Instance.new("TextButton")RR.Size=UDim2.new(0,130,1,0)RR.Position=UDim2.new(0,35,0,0)RR.BackgroundColor3=Color3.fromRGB(230,130,0)RR.TextColor3=Color3.fromRGB(255,255,255)RR.Font=Enum.Font.GothamBold RR.TextSize=14 RR.Text="Перекрут"RR.Parent=EF R(RR)
+IC(EF,UDim2.new(1,-35,0.5,-12),UDim2.new(0,24,0,24),"rbxassetid://6023426926")
+local ME=Instance.new("TextButton")ME.Size=UDim2.new(0,130,1,0)ME.Position=UDim2.new(1,-165,0,0)ME.BackgroundColor3=Color3.fromRGB(60,61,64)ME.TextColor3=Color3.fromRGB(255,255,255)ME.Font=Enum.Font.GothamBold ME.TextSize=14 ME.Text="В меню"ME.Parent=EF R(ME)
+
+RB.MouseButton1Click:Connect(function()
+local keys={}for k in pairs(PL)do table.insert(keys,k)end
+if #keys==0 then return end
+local w=keys[math.random(#keys)]WN=w P2.Visible=false P3.Visible=true EF.Visible=true
+WNl.Text=w WA.Image="rbxthumb://type=AvatarHeadShot&id="..P:GetUserIdFromNameAsync(w).."&w=150&h=150"
+end)
+
+RR.MouseButton1Click:Connect(function()
+local keys={}for k in pairs(PL)do table.insert(keys,k)end
+if #keys==0 then return end
+local w=keys[math.random(#keys)]WN=w WNl.Text=w WA.Image="rbxthumb://type=AvatarHeadShot&id="..P:GetUserIdFromNameAsync(w).."&w=150&h=150"
+end)
+
+ME.MouseButton1Click:Connect(function()P3.Visible=false P2.Visible=true EF.Visible=false end)
+
+GV.MouseButton1Click:Connect(function()
+local am=tonumber(RI.Text)if not am or am<=0 then return end
+local nf=Instance.new("Frame")nf.Parent=S nf.Size=UDim2.new(0,320,0,60)nf.Position=UDim2.new(0.5,-160,0.02,0)nf.BackgroundColor3=Color3.fromRGB(0,180,100)nf.ZIndex=20 R(nf,8)
+IC(nf,UDim2.new(0,8,0.5,-14),UDim2.new(0,28,0,28),"rbxassetid://1783193273")
+local nt=Instance.new("TextLabel")nt.Parent=nf nt.Size=UDim2.new(1,-55,0.5,0)nt.Position=UDim2.new(0,45,0.1,0)nt.BackgroundTransparency=1 nt.TextColor3=Color3.fromRGB(255,255,255)nt.Font=Enum.Font.GothamBold nt.TextSize=15 nt.TextXAlignment=Enum.TextXAlignment.Left nt.Text=WN.." получает"
+local at=Instance.new("TextLabel")at.Parent=nf at.Size=UDim2.new(1,-55,0.5,0)at.Position=UDim2.new(0,45,0.5,0)at.BackgroundTransparency=1 at.TextColor3=Color3.fromRGB(255,215,0)at.Font=Enum.Font.GothamBold at.TextSize=18 at.TextXAlignment=Enum.TextXAlignment.Left at.Text=am.." Robux!"
+nf.Position=UDim2.new(0.5,-160,-0.15,0)T:Create(nf,TweenInfo.new(0.5,Enum.EasingStyle.Back),{Position=UDim2.new(0.5,-160,0.02,0)}):Play()
+task.wait(3)T:Create(nf,TweenInfo.new(0.3),{Position=UDim2.new(0.5,-160,-0.15,0)}):Play()
+task.wait(0.3)nf:Destroy()PL={}WN=""P3.Visible=false P1.Visible=true EF.Visible=false UpdateCount()end)
+
+print("✅ Contest System загружен!")
