@@ -1,0 +1,86 @@
+import json,requests,time,os,csv,random,sys,subprocess
+from datetime import datetime
+C=type('C',(),{'GREEN':'\033[92m','RED':'\033[91m','YELLOW':'\033[93m','BLUE':'\033[94m','PURPLE':'\033[95m','CYAN':'\033[96m','RESET':'\033[0m'})
+URL="https://api.mm2values.com/v1/values"
+class M:
+ def __init__(s):
+  s.data=None;s.history=s._load('mm2_history.json');s.fav=s._load('mm2_favorites.json')
+ def _load(s,f):
+  try:return json.load(open(f))
+  except:return{}
+ def _save(s,f,d):
+  try:json.dump(d,open(f,'w'),indent=2)
+  except:pass
+ def fetch(s):
+  print(f"{C.BLUE}Загрузка...{C.RESET}")
+  try:
+   r=requests.get(URL,timeout=10)
+   if r.status_code==200:s.data=r.json();print(f"{C.GREEN}OK{C.RESET}");return True
+  except:print(f"{C.RED}Ошибка{C.RESET}")
+  return False
+ def find(s,n):
+  if not s.data:return None
+  n=n.lower()
+  for i in s.data.get('items',[]):
+   if i.get('name','').lower()==n:return i
+  for i in s.data.get('ancients',[]):
+   if i.get('name','').lower()==n:return i
+  return None
+ def top(s,l=10):
+  if not s.data:return[]
+  a=[]
+  for i in s.data.get('items',[])+s.data.get('ancients',[]):a.append(i)
+  a.sort(key=lambda x:x.get('value',0),reverse=True)
+  return a[:l]
+ def search(s):
+  while True:
+   q=input(f"\n{C.CYAN}Введите название скина (выход): {C.RESET}").strip()
+   if q.lower() in ['выход','exit','q']:break
+   if not q:continue
+   skin=s.find(q)
+   if skin:print(f"{C.GREEN}{skin['name']}{C.RESET} - ${skin.get('value',0)} ({skin.get('rarity','')})")
+   else:print(f"{C.RED}Не найден{C.RESET}")
+class T:
+ def __init__(s,a):s.a=a;s.deals=[]
+ def cmp(s,n1,n2):
+  a=s.a.find(n1);b=s.a.find(n2)
+  if not a or not b:print(f"{C.RED}Не найден{C.RESET}");return
+  print(f"\n{C.CYAN}СРАВНЕНИЕ{C.RESET}")
+  print(f"{a['name']}: ${a.get('value',0)}")
+  print(f"{b['name']}: ${b.get('value',0)}")
+  d=a.get('value',0)-b.get('value',0)
+  if d>0:print(f"{C.GREEN}{a['name']} дороже на ${d}{C.RESET}")
+  else:print(f"{C.RED}{b['name']} дороже на ${abs(d)}{C.RESET}")
+ def trade(s,h,w):
+  a=s.a.find(h);b=s.a.find(w)
+  if not a or not b:print(f"{C.RED}Не найден{C.RESET}");return
+  p=b.get('value',0)-a.get('value',0)
+  print(f"\n{C.CYAN}ОБМЕН{C.RESET}")
+  print(f"Отдаёте: {a['name']} (${a.get('value',0)})")
+  print(f"Получаете: {b['name']} (${b.get('value',0)})")
+  if p>0:print(f"{C.GREEN}Выгода +${p}{C.RESET}")
+  else:print(f"{C.RED}Убыток -${abs(p)}{C.RESET}")
+  s.deals.append({'from':a['name'],'to':b['name'],'profit':p,'time':str(datetime.now())})
+def menu():
+ a=M();t=T(a)
+ if not a.fetch():print(f"{C.RED}Нет интернета{C.RESET}");return
+ while True:
+  print(f"\n{C.CYAN}{'='*40}{C.RESET}")
+  print(f"{C.PURPLE}MM2 АНАЛИЗАТОР{C.RESET}")
+  print("1. Поиск скина")
+  print("2. Топ-10")
+  print("3. Сравнить")
+  print("4. Обмен")
+  print("0. Выход")
+  c=input("Выбор: ").strip()
+  if c=='1':a.search()
+  elif c=='2':
+   for i,s in enumerate(a.top(),1):print(f"{i}. {s['name']} - ${s.get('value',0)}")
+  elif c=='3':
+   n1=input("Первый: ").strip();n2=input("Второй: ").strip();t.cmp(n1,n2)
+  elif c=='4':
+   h=input("Что отдаёте: ").strip();w=input("Что хотите: ").strip();t.trade(h,w)
+  elif c=='0':print(f"{C.GREEN}Пока!{C.RESET}");break
+if __name__=="__main__":
+ try:menu()
+ except:print("Ошибка")
