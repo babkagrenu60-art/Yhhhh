@@ -1,0 +1,500 @@
+-- Проверяем, запущен ли скрипт ранее, чтобы не дублировать GUI
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+-- Удаляем старый GUI
+local oldGui = CoreGui:FindFirstChild("RobuxPrankGui") or LocalPlayer:FindFirstChildOfClass("PlayerGui"):FindFirstChild("RobuxPrankGui")
+if oldGui then oldGui:Destroy() end
+
+-- Сервисы
+local TweenService = game:GetService("TweenService")
+
+-- Создание контейнера GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RobuxPrankGui"
+ScreenGui.ResetOnSpawn = false
+
+-- Безопасное создание GUI
+local success, err = pcall(function()
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end)
+
+if not success then
+    pcall(function()
+        ScreenGui.Parent = CoreGui
+    end)
+end
+
+-- ====================================================================
+-- КНОПКА ОТКРЫТИЯ/ЗАКРЫТИЯ
+-- ====================================================================
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleMenu"
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+ToggleButton.Position = UDim2.new(0.02, 0, 0.05, 0)
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Text = "💰"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 24
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 25)
+ToggleCorner.Parent = ToggleButton
+
+-- Функция для перетаскивания
+local function makeDraggable(frame)
+    local dragging, dragInput, dragStart, startPos
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+           input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or 
+           input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+makeDraggable(ToggleButton)
+
+-- ====================================================================
+-- ГЛАВНАЯ ПАНЕЛЬ
+-- ====================================================================
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(36, 37, 38)
+MainFrame.Position = UDim2.new(0.02, 0, 0.12, 0)
+MainFrame.Size = UDim2.new(0, 340, 0, 420)
+MainFrame.Active = true
+MainFrame.Visible = true
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 2
+MainStroke.Color = Color3.fromRGB(255, 200, 0)
+MainStroke.Parent = MainFrame
+
+makeDraggable(MainFrame)
+
+-- ====================================================================
+-- ЛОГИКА ОТКРЫТИЯ/ЗАКРЫТИЯ
+-- ====================================================================
+local PanelVisible = true
+
+ToggleButton.MouseButton1Click:Connect(function()
+    PanelVisible = not PanelVisible
+    MainFrame.Visible = PanelVisible
+    ToggleButton.BackgroundColor3 = PanelVisible and Color3.fromRGB(30, 30, 40) or Color3.fromRGB(60, 60, 80)
+end)
+
+-- ====================================================================
+-- ВЕРХНИЙ БАР
+-- ====================================================================
+local TitleBar = Instance.new("Frame")
+TitleBar.Parent = MainFrame
+TitleBar.Size = UDim2.new(1, 0, 0, 45)
+TitleBar.BackgroundColor3 = Color3.fromRGB(43, 44, 46)
+TitleBar.BorderSizePixel = 0
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleBar
+
+-- Заголовок
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Parent = TitleBar
+TitleLabel.Size = UDim2.new(1, -60, 1, 0)
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "💰 ROBUX GENERATOR"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.TextSize = 16
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Фейковый баланс
+local BalanceLabel = Instance.new("TextLabel")
+BalanceLabel.Parent = TitleBar
+BalanceLabel.Size = UDim2.new(1, -60, 1, 0)
+BalanceLabel.Position = UDim2.new(0, 10, 0, 0)
+BalanceLabel.BackgroundTransparency = 1
+BalanceLabel.Text = "Balance: 200,000,000 R$"
+BalanceLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
+BalanceLabel.Font = Enum.Font.SourceSans
+BalanceLabel.TextSize = 11
+BalanceLabel.TextXAlignment = Enum.TextXAlignment.Right
+
+-- Кнопка закрытия
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = TitleBar
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -38, 0.5, -15)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+CloseBtn.TextSize = 18
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- ====================================================================
+-- ПОЛЕ ВВОДА НИКНЕЙМА
+-- ====================================================================
+local NickInput = Instance.new("TextBox")
+NickInput.Parent = MainFrame
+NickInput.Size = UDim2.new(1, -40, 0, 45)
+NickInput.Position = UDim2.new(0, 20, 0, 60)
+NickInput.BackgroundColor3 = Color3.fromRGB(25, 25, 26)
+NickInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+NickInput.PlaceholderText = "Введите никнейм игрока..."
+NickInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+NickInput.Font = Enum.Font.SourceSans
+NickInput.TextSize = 14
+NickInput.Text = ""
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 8)
+InputCorner.Parent = NickInput
+
+-- ====================================================================
+-- ПРОФИЛЬ ИГРОКА
+-- ====================================================================
+local ProfileFrame = Instance.new("Frame")
+ProfileFrame.Parent = MainFrame
+ProfileFrame.Size = UDim2.new(1, -40, 0, 70)
+ProfileFrame.Position = UDim2.new(0, 20, 0, 120)
+ProfileFrame.BackgroundColor3 = Color3.fromRGB(43, 44, 46)
+ProfileFrame.BackgroundTransparency = 1
+
+local ProfileCorner = Instance.new("UICorner")
+ProfileCorner.CornerRadius = UDim.new(0, 8)
+ProfileCorner.Parent = ProfileFrame
+
+-- Аватар
+local AvatarImage = Instance.new("ImageLabel")
+AvatarImage.Parent = ProfileFrame
+AvatarImage.Size = UDim2.new(0, 50, 0, 50)
+AvatarImage.Position = UDim2.new(0, 10, 0.5, -25)
+AvatarImage.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+AvatarImage.Visible = false
+
+local AvatarCorner = Instance.new("UICorner")
+AvatarCorner.CornerRadius = UDim.new(1, 0)
+AvatarCorner.Parent = AvatarImage
+
+-- Имя
+local NickLabel = Instance.new("TextLabel")
+NickLabel.Parent = ProfileFrame
+NickLabel.Size = UDim2.new(1, -80, 1, 0)
+NickLabel.Position = UDim2.new(0, 70, 0, 0)
+NickLabel.BackgroundTransparency = 1
+NickLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+NickLabel.Font = Enum.Font.SourceSansBold
+NickLabel.TextSize = 16
+NickLabel.TextXAlignment = Enum.TextXAlignment.Left
+NickLabel.Text = ""
+
+-- Статус игрока
+local PlayerStatus = Instance.new("TextLabel")
+PlayerStatus.Parent = ProfileFrame
+PlayerStatus.Size = UDim2.new(1, -80, 0, 20)
+PlayerStatus.Position = UDim2.new(0, 70, 0, 30)
+PlayerStatus.BackgroundTransparency = 1
+PlayerStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+PlayerStatus.Font = Enum.Font.SourceSans
+PlayerStatus.TextSize = 12
+PlayerStatus.TextXAlignment = Enum.TextXAlignment.Left
+PlayerStatus.Text = "Статус: Онлайн"
+
+-- Поиск игрока
+NickInput:GetPropertyChangedSignal("Text"):Connect(function()
+    local text = NickInput.Text
+    if text == "" then
+        ProfileFrame.BackgroundTransparency = 1
+        AvatarImage.Visible = false
+        NickLabel.Text = ""
+        return
+    end
+    
+    task.spawn(function()
+        local success, userId = pcall(function()
+            return Players:GetUserIdFromNameAsync(text)
+        end)
+        
+        if success and userId and NickInput.Text == text then
+            ProfileFrame.BackgroundTransparency = 0
+            NickLabel.Text = text
+            AvatarImage.Image = "rbxthumb://type=AvatarHeadShot&id="..userId.."&w=150&h=150"
+            AvatarImage.Visible = true
+        end
+    end)
+end)
+
+-- ====================================================================
+-- ВЫБОР СУММЫ
+-- ====================================================================
+local RobuxAmounts = {200, 500, 1000, 1500, 4500, 10000, 20000, 50000, 100000}
+local currentSelectionIndex = 1
+
+local SelectAmountBtn = Instance.new("TextButton")
+SelectAmountBtn.Parent = MainFrame
+SelectAmountBtn.Size = UDim2.new(1, -40, 0, 45)
+SelectAmountBtn.Position = UDim2.new(0, 20, 0, 205)
+SelectAmountBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 26)
+SelectAmountBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SelectAmountBtn.Font = Enum.Font.SourceSansBold
+SelectAmountBtn.TextSize = 14
+SelectAmountBtn.Text = "Выдать: " .. tostring(RobuxAmounts[currentSelectionIndex]) .. " R$"
+
+local SelectCorner = Instance.new("UICorner")
+SelectCorner.CornerRadius = UDim.new(0, 8)
+SelectCorner.Parent = SelectAmountBtn
+
+SelectAmountBtn.MouseButton1Click:Connect(function()
+    currentSelectionIndex = currentSelectionIndex + 1
+    if currentSelectionIndex > #RobuxAmounts then currentSelectionIndex = 1 end
+    SelectAmountBtn.Text = "Выдать: " .. tostring(RobuxAmounts[currentSelectionIndex]) .. " R$"
+end)
+
+-- ====================================================================
+-- КНОПКА ВЫДАЧИ
+-- ====================================================================
+local IssuanceBtn = Instance.new("TextButton")
+IssuanceBtn.Parent = MainFrame
+IssuanceBtn.Size = UDim2.new(1, -40, 0, 50)
+IssuanceBtn.Position = UDim2.new(0, 20, 0, 270)
+IssuanceBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
+IssuanceBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+IssuanceBtn.Font = Enum.Font.SourceSansBold
+IssuanceBtn.TextSize = 18
+IssuanceBtn.Text = "💎 ВЫДАТЬ ROBUX"
+
+local IssuanceCorner = Instance.new("UICorner")
+IssuanceCorner.CornerRadius = UDim.new(0, 8)
+IssuanceCorner.Parent = IssuanceBtn
+
+-- Эффект при наведении (для телефона тоже работает)
+IssuanceBtn.MouseButton1Down:Connect(function()
+    IssuanceBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 80)
+end)
+
+IssuanceBtn.MouseButton1Up:Connect(function()
+    IssuanceBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
+end)
+
+-- ====================================================================
+-- МОДАЛЬНОЕ ОКНО ЗАГРУЗКИ
+-- ====================================================================
+local ModalOverlay = Instance.new("Frame")
+ModalOverlay.Parent = ScreenGui
+ModalOverlay.Size = UDim2.new(1, 0, 1, 0)
+ModalOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ModalOverlay.BackgroundTransparency = 1
+ModalOverlay.Visible = false
+ModalOverlay.ZIndex = 10
+
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Parent = ModalOverlay
+LoadingFrame.Size = UDim2.new(0, 280, 0, 180)
+LoadingFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(36, 37, 38)
+LoadingFrame.BorderSizePixel = 0
+LoadingFrame.ZIndex = 11
+
+local LoadingCorner = Instance.new("UICorner")
+LoadingCorner.CornerRadius = UDim.new(0, 12)
+LoadingCorner.Parent = LoadingFrame
+
+-- Спиннер
+local Spinner = Instance.new("ImageLabel")
+Spinner.Parent = LoadingFrame
+Spinner.Size = UDim2.new(0, 50, 0, 50)
+Spinner.Position = UDim2.new(0.5, -25, 0.3, -25)
+Spinner.BackgroundTransparency = 1
+Spinner.Image = "rbxassetid://163023520"
+Spinner.ZIndex = 12
+
+-- Статус загрузки
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = LoadingFrame
+StatusLabel.Size = UDim2.new(1, -20, 0, 40)
+StatusLabel.Position = UDim2.new(0, 10, 0.7, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+StatusLabel.Font = Enum.Font.SourceSans
+StatusLabel.TextSize = 14
+StatusLabel.Text = "Подключение к Roblox API..."
+StatusLabel.ZIndex = 12
+
+-- Вращение спиннера
+task.spawn(function()
+    while true do
+        Spinner.Rotation = Spinner.Rotation + 6
+        task.wait(0.02)
+    end
+end)
+
+-- ====================================================================
+-- ЛОГИКА ВЫДАЧИ
+-- ====================================================================
+IssuanceBtn.MouseButton1Click:Connect(function()
+    if NickInput.Text == "" then 
+        NickInput.PlaceholderText = "❌ ВВЕДИТЕ НИКНЕЙМ!"
+        NickInput.PlaceholderColor3 = Color3.fromRGB(255, 0, 0)
+        task.wait(2)
+        NickInput.PlaceholderText = "Введите никнейм игрока..."
+        NickInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+        return 
+    end
+    
+    -- Показываем загрузку
+    ModalOverlay.Visible = true
+    TweenService:Create(ModalOverlay, 
+        TweenInfo.new(0.3), 
+        {BackgroundTransparency = 0.5}
+    ):Play()
+    
+    -- Имитация процесса
+    StatusLabel.Text = "Проверка аккаунта " .. NickInput.Text .. "..."
+    task.wait(1.2)
+    
+    StatusLabel.Text = "Обработка транзакции " .. tostring(RobuxAmounts[currentSelectionIndex]) .. " R$..."
+    task.wait(1.5)
+    
+    StatusLabel.Text = "✅ Успешно! Очистка кэша..."
+    task.wait(0.8)
+    
+    -- Скрываем загрузку
+    ModalOverlay.Visible = false
+    ModalOverlay.BackgroundTransparency = 1
+    
+    -- Создаем уведомление об успехе
+    local Notification = Instance.new("Frame")
+    Notification.Parent = ScreenGui
+    Notification.Size = UDim2.new(0, 300, 0, 60)
+    Notification.Position = UDim2.new(0.5, -150, 0.02, 0)
+    Notification.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
+    Notification.ZIndex = 20
+    
+    local NotifCorner = Instance.new("UICorner")
+    NotifCorner.CornerRadius = UDim.new(0, 8)
+    NotifCorner.Parent = Notification
+    
+    local NotifText = Instance.new("TextLabel")
+    NotifText.Parent = Notification
+    NotifText.Size = UDim2.new(1, 0, 1, 0)
+    NotifText.BackgroundTransparency = 1
+    NotifText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NotifText.Font = Enum.Font.SourceSansBold
+    NotifText.TextSize = 14
+    NotifText.Text = "✅ " .. tostring(RobuxAmounts[currentSelectionIndex]) .. " R$ выдано " .. NickInput.Text .. "!"
+    
+    -- Анимация появления
+    Notification.Position = UDim2.new(0.5, -150, -0.1, 0)
+    TweenService:Create(Notification, 
+        TweenInfo.new(0.5, Enum.EasingStyle.Back), 
+        {Position = UDim2.new(0.5, -150, 0.02, 0)}
+    ):Play()
+    
+    -- Удаляем через 3 секунды
+    task.wait(3)
+    TweenService:Create(Notification, 
+        TweenInfo.new(0.3), 
+        {Position = UDim2.new(0.5, -150, -0.1, 0)}
+    ):Play()
+    task.wait(0.3)
+    Notification:Destroy()
+end)
+
+-- ====================================================================
+-- ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ
+-- ====================================================================
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Parent = MainFrame
+InfoLabel.Size = UDim2.new(1, -40, 0, 30)
+InfoLabel.Position = UDim2.new(0, 20, 0, 335)
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+InfoLabel.Font = Enum.Font.SourceSans
+InfoLabel.TextSize = 11
+InfoLabel.Text = "⚠️ Это демонстрационный скрипт-розыгрыш"
+InfoLabel.TextWrapped = true
+
+-- Кнопка "Очистить"
+local ClearBtn = Instance.new("TextButton")
+ClearBtn.Parent = MainFrame
+ClearBtn.Size = UDim2.new(0.45, 0, 0, 35)
+ClearBtn.Position = UDim2.new(0.03, 0, 0.90, 0)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+ClearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ClearBtn.Font = Enum.Font.SourceSansBold
+ClearBtn.TextSize = 13
+ClearBtn.Text = "🗑️ Очистить"
+
+local ClearCorner = Instance.new("UICorner")
+ClearCorner.CornerRadius = UDim.new(0, 8)
+ClearCorner.Parent = ClearBtn
+
+ClearBtn.MouseButton1Click:Connect(function()
+    NickInput.Text = ""
+    ProfileFrame.BackgroundTransparency = 1
+    AvatarImage.Visible = false
+    NickLabel.Text = ""
+end)
+
+-- Кнопка "О скрипте"
+local AboutBtn = Instance.new("TextButton")
+AboutBtn.Parent = MainFrame
+AboutBtn.Size = UDim2.new(0.45, 0, 0, 35)
+AboutBtn.Position = UDim2.new(0.52, 0, 0.90, 0)
+AboutBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+AboutBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AboutBtn.Font = Enum.Font.SourceSansBold
+AboutBtn.TextSize = 13
+AboutBtn.Text = "ℹ️ О скрипте"
+
+local AboutCorner = Instance.new("UICorner")
+AboutCorner.CornerRadius = UDim.new(0, 8)
+AboutCorner.Parent = AboutBtn
+
+AboutBtn.MouseButton1Click:Connect(function()
+    StatusLabel.Text = "📱 Скрипт-розыгрыш для Дельты"
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+    task.wait(2)
+    StatusLabel.Text = "Подключение к Roblox API..."
+    StatusLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+end)
+
+print("✅ Robux Generator загружен для Дельты!")
+print("📱 Нажми кнопку 💰 в левом верхнем углу")
