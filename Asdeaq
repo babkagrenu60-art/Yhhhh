@@ -1,0 +1,350 @@
+-- ============================================================
+--  FLY SCRIPT С УПРАВЛЕНИЕМ ЧЕРЕЗ ДЖОЙСТИК (ДЛЯ ТЕЛЕФОНА)
+-- ============================================================
+
+local Player = game.Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+
+-- Переменные
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local FlyButton = Instance.new("TextButton")
+local SpeedInput = Instance.new("TextBox")
+local ToggleButton = Instance.new("TextButton")
+
+local flying = false
+local speed = 30
+local bv = nil
+local bg = nil
+local Character = nil
+local HumanoidRootPart = nil
+
+-- Направление движения (от джойстика)
+local moveDirection = Vector3.new(0, 0, 0)
+local isMoving = false
+
+-- ============================================================
+--  GUI
+-- ============================================================
+
+ScreenGui.Name = "FlyGui"
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+-- КНОПКА ОТКРЫТИЯ МЕНЮ
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ToggleButton.Position = UDim2.new(0, 10, 0, 10)
+ToggleButton.Size = UDim2.new(0, 55, 0, 55)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Text = "✈️"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 20
+ToggleButton.BorderSizePixel = 0
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 12)
+ToggleCorner.Parent = ToggleButton
+
+-- ГЛАВНОЕ МЕНЮ
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -85)
+MainFrame.Size = UDim2.new(0, 240, 0, 170)
+MainFrame.Visible = false
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = false
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 16)
+MainCorner.Parent = MainFrame
+
+local MainBg = Instance.new("Frame")
+MainBg.Name = "MainBg"
+MainBg.Parent = MainFrame
+MainBg.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+MainBg.BackgroundTransparency = 0.3
+MainBg.Size = UDim2.new(1, 0, 1, 0)
+MainBg.BorderSizePixel = 0
+
+local MainBgCorner = Instance.new("UICorner")
+MainBgCorner.CornerRadius = UDim.new(0, 16)
+MainBgCorner.Parent = MainBg
+
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Position = UDim2.new(0, 0, 0, 5)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "✈️ FLY SCRIPT"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20
+
+SpeedInput.Name = "SpeedInput"
+SpeedInput.Parent = MainFrame
+SpeedInput.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+SpeedInput.Position = UDim2.new(0, 15, 0, 50)
+SpeedInput.Size = UDim2.new(0, 210, 0, 35)
+SpeedInput.Font = Enum.Font.SourceSans
+SpeedInput.PlaceholderText = "Скорость (1-200)"
+SpeedInput.Text = "30"
+SpeedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedInput.TextSize = 16
+SpeedInput.BorderSizePixel = 0
+SpeedInput.ClearTextOnFocus = false
+
+local SpeedCorner = Instance.new("UICorner")
+SpeedCorner.CornerRadius = UDim.new(0, 8)
+SpeedCorner.Parent = SpeedInput
+
+FlyButton.Name = "FlyButton"
+FlyButton.Parent = MainFrame
+FlyButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+FlyButton.Position = UDim2.new(0, 15, 0, 105)
+FlyButton.Size = UDim2.new(0, 210, 0, 45)
+FlyButton.Font = Enum.Font.SourceSansBold
+FlyButton.Text = "🛫 Fly: ВЫКЛ"
+FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlyButton.TextSize = 18
+FlyButton.BorderSizePixel = 0
+
+local FlyCorner = Instance.new("UICorner")
+FlyCorner.CornerRadius = UDim.new(0, 8)
+FlyCorner.Parent = FlyButton
+
+-- ============================================================
+--  ОБНОВЛЕНИЕ ПЕРСОНАЖА
+-- ============================================================
+
+local function UpdateCharacter()
+    Character = Player.Character
+    if Character then
+        HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+        if HumanoidRootPart then
+            return true
+        end
+    end
+    return false
+end
+
+local function WaitForCharacter()
+    if not UpdateCharacter() then
+        Player.CharacterAdded:Wait()
+        UpdateCharacter()
+    end
+    return HumanoidRootPart ~= nil
+end
+
+-- ============================================================
+--  УПРАВЛЕНИЕ ЧЕРЕЗ ДЖОЙСТИК (WASD + СТИК)
+-- ============================================================
+
+-- Обработка нажатий клавиш (WASD)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if not flying then return end
+    
+    if input.KeyCode == Enum.KeyCode.W then
+        moveDirection = moveDirection + Vector3.new(0, 0, -1)
+        isMoving = true
+    elseif input.KeyCode == Enum.KeyCode.S then
+        moveDirection = moveDirection + Vector3.new(0, 0, 1)
+        isMoving = true
+    elseif input.KeyCode == Enum.KeyCode.A then
+        moveDirection = moveDirection + Vector3.new(-1, 0, 0)
+        isMoving = true
+    elseif input.KeyCode == Enum.KeyCode.D then
+        moveDirection = moveDirection + Vector3.new(1, 0, 0)
+        isMoving = true
+    elseif input.KeyCode == Enum.KeyCode.Space then
+        -- Вверх (пробел)
+        moveDirection = moveDirection + Vector3.new(0, 1, 0)
+        isMoving = true
+    elseif input.KeyCode == Enum.KeyCode.LeftShift then
+        -- Вниз (Shift)
+        moveDirection = moveDirection + Vector3.new(0, -1, 0)
+        isMoving = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if not flying then return end
+    
+    if input.KeyCode == Enum.KeyCode.W then
+        moveDirection = moveDirection - Vector3.new(0, 0, -1)
+    elseif input.KeyCode == Enum.KeyCode.S then
+        moveDirection = moveDirection - Vector3.new(0, 0, 1)
+    elseif input.KeyCode == Enum.KeyCode.A then
+        moveDirection = moveDirection - Vector3.new(-1, 0, 0)
+    elseif input.KeyCode == Enum.KeyCode.D then
+        moveDirection = moveDirection - Vector3.new(1, 0, 0)
+    elseif input.KeyCode == Enum.KeyCode.Space then
+        moveDirection = moveDirection - Vector3.new(0, 1, 0)
+    elseif input.KeyCode == Enum.KeyCode.LeftShift then
+        moveDirection = moveDirection - Vector3.new(0, -1, 0)
+    end
+    
+    -- Если все клавиши отпущены — останавливаемся
+    if moveDirection.Magnitude < 0.1 then
+        isMoving = false
+    end
+end)
+
+-- ============================================================
+--  ФУНКЦИЯ ПОЛЁТА
+-- ============================================================
+
+local function StartFly()
+    if not WaitForCharacter() then
+        FlyButton.Text = "🛫 Ошибка!"
+        return
+    end
+    
+    local inputSpeed = tonumber(SpeedInput.Text)
+    if inputSpeed and inputSpeed > 0 and inputSpeed <= 500 then
+        speed = inputSpeed
+    else
+        speed = 30
+        SpeedInput.Text = "30"
+    end
+    
+    flying = true
+    FlyButton.Text = "🛫 Fly: ВКЛ"
+    FlyButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+    
+    bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.Parent = HumanoidRootPart
+    
+    bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+    bg.CFrame = HumanoidRootPart.CFrame
+    bg.Parent = HumanoidRootPart
+    
+    local humanoid = Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true
+    end
+    
+    -- Сброс направления
+    moveDirection = Vector3.new(0, 0, 0)
+    isMoving = false
+end
+
+local function StopFly()
+    flying = false
+    FlyButton.Text = "🛫 Fly: ВЫКЛ"
+    FlyButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    
+    if bv then bv:Destroy() bv = nil end
+    if bg then bg:Destroy() bg = nil end
+    
+    local humanoid = Character and Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = false
+    end
+    
+    moveDirection = Vector3.new(0, 0, 0)
+    isMoving = false
+end
+
+-- ============================================================
+--  ОБНОВЛЕНИЕ ПОЛЁТА КАЖДЫЙ КАДР (С УЧЁТОМ НАПРАВЛЕНИЯ)
+-- ============================================================
+
+RunService.Heartbeat:Connect(function()
+    if flying and HumanoidRootPart and Camera then
+        if bv then
+            -- Если двигаемся — летим в направлении джойстика
+            if isMoving or moveDirection.Magnitude > 0.1 then
+                -- Преобразуем направление относительно камеры
+                local camForward = Camera.CFrame.LookVector
+                local camRight = Camera.CFrame.RightVector
+                local camUp = Camera.CFrame.UpVector
+                
+                local moveVec = (camForward * moveDirection.Z * -1) + (camRight * moveDirection.X) + (camUp * moveDirection.Y)
+                
+                if moveVec.Magnitude > 0.1 then
+                    bv.Velocity = moveVec.Unit * speed
+                else
+                    bv.Velocity = Vector3.new(0, 0, 0)
+                end
+            else
+                -- Если ничего не нажато — зависаем на месте
+                bv.Velocity = Vector3.new(0, 0, 0)
+            end
+        end
+        if bg then
+            bg.CFrame = Camera.CFrame
+        end
+    end
+end)
+
+-- ============================================================
+--  ПЕРЕСОЗДАНИЕ ПОЛЁТА ПРИ ВОЗРОЖДЕНИИ
+-- ============================================================
+
+Player.CharacterAdded:Connect(function(char)
+    Character = char
+    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+    if flying then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = true
+        end
+        bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.Parent = HumanoidRootPart
+        
+        bg = Instance.new("BodyGyro")
+        bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+        bg.CFrame = HumanoidRootPart.CFrame
+        bg.Parent = HumanoidRootPart
+    end
+end)
+
+-- ============================================================
+--  КНОПКИ
+-- ============================================================
+
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+FlyButton.MouseButton1Click:Connect(function()
+    if not HumanoidRootPart then
+        if not WaitForCharacter() then
+            FlyButton.Text = "🛫 Ошибка!"
+            return
+        end
+    end
+    
+    if flying then
+        StopFly()
+    else
+        StartFly()
+    end
+end)
+
+-- ============================================================
+--  ОЧИСТКА ПРИ ВЫХОДЕ
+-- ============================================================
+
+ScreenGui.AncestryChanged:Connect(function()
+    if not ScreenGui.Parent then
+        StopFly()
+    end
+end)
+
+print("✅ Fly Script с управлением через джойстик загружен!")
