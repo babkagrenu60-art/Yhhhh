@@ -1,0 +1,366 @@
+local P=game.Players.LocalPlayer
+local U=game:GetService("UserInputService")
+local R=game:GetService("RunService")
+local C=workspace.CurrentCamera
+local T=game:GetService("TweenService")
+local L=Instance.new("ScreenGui")
+L.Name="LoadScreenGui"
+L.Parent=P:WaitForChild("PlayerGui")
+L.ResetOnSpawn=false
+L.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+local B1=Instance.new("Frame")
+B1.Name="BlackScreen1"
+B1.Parent=L
+B1.BackgroundColor3=Color3.fromRGB(0,0,0)
+B1.Size=UDim2.new(1,0,1,0)
+B1.BorderSizePixel=0
+B1.ZIndex=2
+local T1=Instance.new("TextLabel")
+T1.Name="Text1"
+T1.Parent=B1
+T1.BackgroundTransparency=1
+T1.Size=UDim2.new(1,0,1,0)
+T1.Font=Enum.Font.SourceSansBold
+T1.Text="Fly Bypass.."
+T1.TextColor3=Color3.fromRGB(255,255,255)
+T1.TextSize=40
+T1.ZIndex=3
+T1.TextScaled=true
+local B2=Instance.new("Frame")
+B2.Name="BlackScreen2"
+B2.Parent=L
+B2.BackgroundColor3=Color3.fromRGB(0,0,0)
+B2.Size=UDim2.new(1,0,1,0)
+B2.BorderSizePixel=0
+B2.ZIndex=4
+B2.BackgroundTransparency=1
+local T2=Instance.new("TextLabel")
+T2.Name="Text2"
+T2.Parent=B2
+T2.BackgroundTransparency=1
+T2.Size=UDim2.new(1,0,0.6,0)
+T2.Position=UDim2.new(0,0,0.2,0)
+T2.Font=Enum.Font.SourceSansBold
+T2.Text="By: Gregoo..."
+T2.TextColor3=Color3.fromRGB(255,255,255)
+T2.TextSize=35
+T2.ZIndex=5
+T2.TextScaled=true
+local LF=Instance.new("Frame")
+LF.Name="LoadingFrame"
+LF.Parent=B2
+LF.BackgroundColor3=Color3.fromRGB(30,30,30)
+LF.Position=UDim2.new(0.15,0,0.7,0)
+LF.Size=UDim2.new(0.7,0,0,25)
+LF.ZIndex=5
+LF.BorderSizePixel=0
+local LC=Instance.new("UICorner")
+LC.CornerRadius=UDim.new(0,12)
+LC.Parent=LF
+local LB=Instance.new("Frame")
+LB.Name="LoadingBar"
+LB.Parent=LF
+LB.BackgroundColor3=Color3.fromRGB(0,150,255)
+LB.Size=UDim2.new(0,0,1,0)
+LB.ZIndex=6
+LB.BorderSizePixel=0
+local LBC=Instance.new("UICorner")
+LBC.CornerRadius=UDim.new(0,12)
+LBC.Parent=LB
+local PT=Instance.new("TextLabel")
+PT.Name="PercentText"
+PT.Parent=LF
+PT.BackgroundTransparency=1
+PT.Size=UDim2.new(1,0,1,0)
+PT.Font=Enum.Font.SourceSansBold
+PT.Text="0%"
+PT.TextColor3=Color3.fromRGB(255,255,255)
+PT.TextSize=14
+PT.ZIndex=7
+local LT=Instance.new("TextLabel")
+LT.Name="LoadingText"
+LT.Parent=B2
+LT.BackgroundTransparency=1
+LT.Size=UDim2.new(1,0,0,30)
+LT.Position=UDim2.new(0,0,0.78,0)
+LT.Font=Enum.Font.SourceSans
+LT.Text="Загрузка..."
+LT.TextColor3=Color3.fromRGB(150,150,150)
+LT.TextSize=16
+LT.ZIndex=5
+LT.TextScaled=true
+coroutine.wrap(function()
+wait(3)
+local a=T:Create(B1,TweenInfo.new(0.5,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{BackgroundTransparency=1})
+local b=T:Create(T1,TweenInfo.new(0.5,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{TextTransparency=1})
+a:Play()
+b:Play()
+wait(0.3)
+local c=T:Create(B2,TweenInfo.new(0.8,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{BackgroundTransparency=0})
+c:Play()
+for i=0,100 do
+local p=i/100
+LB.Size=UDim2.new(p,0,1,0)
+PT.Text=math.floor(p*100).."%"
+local r=math.floor(p*255)
+local g=math.floor(150+(1-p)*105)
+local b2=math.floor(255-p*200)
+LB.BackgroundColor3=Color3.fromRGB(r,g,b2)
+wait(0.1)
+end
+LB.Size=UDim2.new(1,0,1,0)
+PT.Text="100%"
+LB.BackgroundColor3=Color3.fromRGB(0,255,100)
+wait(0.3)
+local d=T:Create(B2,TweenInfo.new(0.5,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{BackgroundTransparency=1})
+d:Play()
+wait(0.5)
+L:Destroy()
+end)()
+wait(11)
+local G=Instance.new("ScreenGui")
+local M=Instance.new("Frame")
+local Ti=Instance.new("TextLabel")
+local FB=Instance.new("TextButton")
+local SI=Instance.new("TextBox")
+local TB=Instance.new("TextButton")
+local fly=false
+local sp=30
+local bv=nil
+local bg=nil
+local char=nil
+local hrp=nil
+local dir=Vector3.new(0,0,0)
+G.Name="FlyGui"
+G.Parent=P:WaitForChild("PlayerGui")
+G.ResetOnSpawn=false
+TB.Name="ToggleButton"
+TB.Parent=G
+TB.BackgroundColor3=Color3.fromRGB(35,35,35)
+TB.Position=UDim2.new(0,10,0,10)
+TB.Size=UDim2.new(0,55,0,55)
+TB.Font=Enum.Font.SourceSansBold
+TB.Text="✈️"
+TB.TextColor3=Color3.fromRGB(255,255,255)
+TB.TextSize=20
+TB.BorderSizePixel=0
+local TC=Instance.new("UICorner")
+TC.CornerRadius=UDim.new(0,12)
+TC.Parent=TB
+M.Name="MainFrame"
+M.Parent=G
+M.BackgroundColor3=Color3.fromRGB(25,25,35)
+M.BackgroundTransparency=0.05
+M.Position=UDim2.new(0.5,-120,0.5,-85)
+M.Size=UDim2.new(0,240,0,170)
+M.Visible=false
+M.BorderSizePixel=0
+M.Active=true
+M.Draggable=false
+local MC=Instance.new("UICorner")
+MC.CornerRadius=UDim.new(0,16)
+MC.Parent=M
+local MB=Instance.new("Frame")
+MB.Name="MainBg"
+MB.Parent=M
+MB.BackgroundColor3=Color3.fromRGB(20,20,30)
+MB.BackgroundTransparency=0.3
+MB.Size=UDim2.new(1,0,1,0)
+MB.BorderSizePixel=0
+local MBC=Instance.new("UICorner")
+MBC.CornerRadius=UDim.new(0,16)
+MBC.Parent=MB
+Ti.Name="Title"
+Ti.Parent=M
+Ti.BackgroundTransparency=1
+Ti.Size=UDim2.new(1,0,0,35)
+Ti.Position=UDim2.new(0,0,0,5)
+Ti.Font=Enum.Font.SourceSansBold
+Ti.Text="✈️ FLY SCRIPT"
+Ti.TextColor3=Color3.fromRGB(255,255,255)
+Ti.TextSize=20
+SI.Name="SpeedInput"
+SI.Parent=M
+SI.BackgroundColor3=Color3.fromRGB(45,45,55)
+SI.Position=UDim2.new(0,15,0,50)
+SI.Size=UDim2.new(0,210,0,35)
+SI.Font=Enum.Font.SourceSans
+SI.PlaceholderText="Скорость (1-200)"
+SI.Text="30"
+SI.TextColor3=Color3.fromRGB(255,255,255)
+SI.TextSize=16
+SI.BorderSizePixel=0
+SI.ClearTextOnFocus=false
+local SC=Instance.new("UICorner")
+SC.CornerRadius=UDim.new(0,8)
+SC.Parent=SI
+FB.Name="FlyButton"
+FB.Parent=M
+FB.BackgroundColor3=Color3.fromRGB(0,150,255)
+FB.Position=UDim2.new(0,15,0,105)
+FB.Size=UDim2.new(0,210,0,45)
+FB.Font=Enum.Font.SourceSansBold
+FB.Text="🛫 Fly: ВЫКЛ"
+FB.TextColor3=Color3.fromRGB(255,255,255)
+FB.TextSize=18
+FB.BorderSizePixel=0
+local FC=Instance.new("UICorner")
+FC.CornerRadius=UDim.new(0,8)
+FC.Parent=FB
+local function UC()
+char=P.Character
+if char then
+hrp=char:FindFirstChild("HumanoidRootPart")
+if hrp then
+return true
+end
+end
+return false
+end
+local function WFC()
+if not UC() then
+P.CharacterAdded:Wait()
+UC()
+end
+return hrp~=nil
+end
+U.InputBegan:Connect(function(i)
+if not fly then return end
+local k=i.KeyCode
+if k==Enum.KeyCode.W then
+dir=dir+Vector3.new(0,0,-1)
+elseif k==Enum.KeyCode.S then
+dir=dir+Vector3.new(0,0,1)
+elseif k==Enum.KeyCode.A then
+dir=dir+Vector3.new(-1,0,0)
+elseif k==Enum.KeyCode.D then
+dir=dir+Vector3.new(1,0,0)
+elseif k==Enum.KeyCode.Space then
+dir=dir+Vector3.new(0,1,0)
+elseif k==Enum.KeyCode.LeftShift then
+dir=dir+Vector3.new(0,-1,0)
+end
+end)
+U.InputEnded:Connect(function(i)
+if not fly then return end
+local k=i.KeyCode
+if k==Enum.KeyCode.W then
+dir=dir-Vector3.new(0,0,-1)
+elseif k==Enum.KeyCode.S then
+dir=dir-Vector3.new(0,0,1)
+elseif k==Enum.KeyCode.A then
+dir=dir-Vector3.new(-1,0,0)
+elseif k==Enum.KeyCode.D then
+dir=dir-Vector3.new(1,0,0)
+elseif k==Enum.KeyCode.Space then
+dir=dir-Vector3.new(0,1,0)
+elseif k==Enum.KeyCode.LeftShift then
+dir=dir-Vector3.new(0,-1,0)
+end
+end)
+local function SF()
+if not WFC() then
+FB.Text="🛫 Ошибка!"
+return
+end
+local s=tonumber(SI.Text)
+if s and s>0 and s<=500 then
+sp=s
+else
+sp=30
+SI.Text="30"
+end
+fly=true
+FB.Text="🛫 Fly: ВКЛ"
+FB.BackgroundColor3=Color3.fromRGB(255,60,60)
+bv=Instance.new("BodyVelocity")
+bv.MaxForce=Vector3.new(1e6,1e6,1e6)
+bv.Velocity=Vector3.new(0,0,0)
+bv.Parent=hrp
+bg=Instance.new("BodyGyro")
+bg.MaxTorque=Vector3.new(1e6,1e6,1e6)
+bg.CFrame=hrp.CFrame
+bg.Parent=hrp
+local h=char:FindFirstChild("Humanoid")
+if h then
+h.PlatformStand=true
+end
+dir=Vector3.new(0,0,0)
+end
+local function StF()
+fly=false
+FB.Text="🛫 Fly: ВЫКЛ"
+FB.BackgroundColor3=Color3.fromRGB(0,150,255)
+if bv then
+bv:Destroy()
+bv=nil
+end
+if bg then
+bg:Destroy()
+bg=nil
+end
+local h=char and char:FindFirstChild("Humanoid")
+if h then
+h.PlatformStand=false
+end
+dir=Vector3.new(0,0,0)
+end
+R.Heartbeat:Connect(function()
+if fly and hrp and C then
+if bv then
+local mv=Vector3.new(0,0,0)
+local cf=C.CFrame.LookVector
+local cr=C.CFrame.RightVector
+local cu=C.CFrame.UpVector
+mv=(cf*-dir.Z)+(cr*dir.X)+(cu*dir.Y)
+if mv.Magnitude>0.1 then
+bv.Velocity=mv.Unit*sp
+else
+bv.Velocity=Vector3.new(0,0,0)
+end
+end
+if bg then
+bg.CFrame=C.CFrame
+end
+end
+end)
+P.CharacterAdded:Connect(function(c)
+char=c
+hrp=c:WaitForChild("HumanoidRootPart")
+if fly then
+local h=c:FindFirstChild("Humanoid")
+if h then
+h.PlatformStand=true
+end
+bv=Instance.new("BodyVelocity")
+bv.MaxForce=Vector3.new(1e6,1e6,1e6)
+bv.Velocity=Vector3.new(0,0,0)
+bv.Parent=hrp
+bg=Instance.new("BodyGyro")
+bg.MaxTorque=Vector3.new(1e6,1e6,1e6)
+bg.CFrame=hrp.CFrame
+bg.Parent=hrp
+end
+end)
+TB.MouseButton1Click:Connect(function()
+M.Visible=not M.Visible
+end)
+FB.MouseButton1Click:Connect(function()
+if not hrp then
+if not WFC() then
+FB.Text="🛫 Ошибка!"
+return
+end
+end
+if fly then
+StF()
+else
+SF()
+end
+end)
+G.AncestryChanged:Connect(function()
+if not G.Parent then
+StF()
+end
+end)
+print("✅ Fly Script загружен! WASD, Пробел(вверх), Shift(вниз)")
