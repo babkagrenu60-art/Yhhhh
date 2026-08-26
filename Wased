@@ -1,0 +1,281 @@
+-- ============================================================
+--  WALLHOP SCRIPT + GUI
+--  Нажми 🔄 в углу экрана для открытия/закрытия меню
+-- ============================================================
+
+local player = game.Players.LocalPlayer
+local userInput = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+
+-- Переменные
+local wallhopEnabled = false
+local wallhopCooldown = 0
+local character = nil
+local humanoid = nil
+local rootPart = nil
+
+-- ============================================================
+--  СОЗДАНИЕ GUI
+-- ============================================================
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "WallhopGUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+
+-- КНОПКА ОТКРЫТИЯ/ЗАКРЫТИЯ (всегда на экране)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleBtn"
+toggleBtn.Parent = screenGui
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+toggleBtn.Size = UDim2.new(0, 55, 0, 55)
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.Text = "🔄"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 24
+toggleBtn.BorderSizePixel = 0
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 12)
+toggleCorner.Parent = toggleBtn
+
+-- ГЛАВНОЕ МЕНЮ (появляется при нажатии на 🔄)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Parent = screenGui
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
+mainFrame.BackgroundTransparency = 0.1
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+mainFrame.Size = UDim2.new(0, 300, 0, 200)
+mainFrame.Visible = false
+mainFrame.BorderSizePixel = 0
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 16)
+mainCorner.Parent = mainFrame
+
+-- ФОН
+local bg = Instance.new("Frame")
+bg.Parent = mainFrame
+bg.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+bg.BackgroundTransparency = 0.3
+bg.Size = UDim2.new(1, 0, 1, 0)
+bg.BorderSizePixel = 0
+
+local bgCorner = Instance.new("UICorner")
+bgCorner.CornerRadius = UDim.new(0, 16)
+bgCorner.Parent = bg
+
+-- ЗАГОЛОВОК
+local title = Instance.new("TextLabel")
+title.Parent = mainFrame
+title.BackgroundTransparency = 1
+title.Size = UDim2.new(1, 0, 0, 45)
+title.Position = UDim2.new(0, 0, 0, 5)
+title.Font = Enum.Font.SourceSansBold
+title.Text = "🧱 WALLHOP"
+title.TextColor3 = Color3.fromRGB(255, 200, 100)
+title.TextSize = 22
+
+-- КНОПКА WALLHOP
+local wallhopBtn = Instance.new("TextButton")
+wallhopBtn.Name = "WallhopBtn"
+wallhopBtn.Parent = mainFrame
+wallhopBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 80)
+wallhopBtn.Position = UDim2.new(0.1, 0, 0.35, 0)
+wallhopBtn.Size = UDim2.new(0.8, 0, 0, 50)
+wallhopBtn.Font = Enum.Font.SourceSansBold
+wallhopBtn.Text = "🧱 Wallhop -"
+wallhopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+wallhopBtn.TextSize = 20
+wallhopBtn.BorderSizePixel = 0
+
+local wallhopCorner = Instance.new("UICorner")
+wallhopCorner.CornerRadius = UDim.new(0, 10)
+wallhopCorner.Parent = wallhopBtn
+
+-- КНОПКА ЗАКРЫТИЯ (внутри меню)
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "CloseBtn"
+closeBtn.Parent = mainFrame
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.Position = UDim2.new(0.85, -10, 0, 8)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 16
+closeBtn.BorderSizePixel = 0
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.Parent = closeBtn
+
+-- СТАТУС (под кнопкой)
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Parent = mainFrame
+statusLabel.BackgroundTransparency = 1
+statusLabel.Size = UDim2.new(1, 0, 0, 30)
+statusLabel.Position = UDim2.new(0, 0, 0.75, 0)
+statusLabel.Font = Enum.Font.SourceSans
+statusLabel.Text = "Выключен"
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusLabel.TextSize = 16
+
+-- ============================================================
+--  ЛОГИКА GUI
+-- ============================================================
+
+-- Открытие/закрытие меню
+toggleBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+end)
+
+-- ============================================================
+--  ОБНОВЛЕНИЕ ПЕРСОНАЖА
+-- ============================================================
+
+local function updateCharacter()
+    character = player.Character
+    if character then
+        humanoid = character:FindFirstChild("Humanoid")
+        rootPart = character:FindFirstChild("HumanoidRootPart")
+        return humanoid ~= nil and rootPart ~= nil
+    end
+    return false
+end
+
+player.CharacterAdded:Connect(function()
+    updateCharacter()
+end)
+
+-- ============================================================
+--  WALLHOP ЛОГИКА
+-- ============================================================
+
+local function getWallNormal()
+    if not rootPart then return nil end
+    local rayOrigin = rootPart.Position
+    local rayDirection = rootPart.CFrame.LookVector * -1  -- Смотрим назад
+
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+    rayParams.FilterDescendantsInstances = {character}
+
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection * 5, rayParams)
+    if raycastResult then
+        return raycastResult.Normal
+    end
+    return nil
+end
+
+local function wallhop()
+    if not wallhopEnabled then return end
+    if not humanoid or not rootPart then return end
+
+    -- Проверяем, что персонаж в воздухе (прыгает) и рядом есть стена
+    if humanoid:GetState() == Enum.HumanoidStateType.Jumping or humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+        local wallNormal = getWallNormal()
+        if wallNormal then
+            -- Отталкиваемся от стены вверх и в сторону
+            local jumpDirection = wallNormal * 25 + Vector3.new(0, 25, 0)
+            rootPart.Velocity = jumpDirection
+            humanoid.Jump = true
+            
+            -- Быстрый поворот вправо и обратно
+            local currentCFrame = rootPart.CFrame
+            rootPart.CFrame = currentCFrame * CFrame.Angles(0, math.rad(15), 0)  -- Поворот вправо
+            task.wait(0.05)
+            rootPart.CFrame = currentCFrame * CFrame.Angles(0, math.rad(-15), 0) -- Обратно
+            
+            -- Плавный поворот к стене (опционально)
+            rootPart.CFrame = CFrame.lookAt(rootPart.Position, rootPart.Position + wallNormal)
+        end
+    end
+end
+
+-- ============================================================
+--  ВКЛЮЧЕНИЕ/ВЫКЛЮЧЕНИЕ WALLHOP
+-- ============================================================
+
+wallhopBtn.MouseButton1Click:Connect(function()
+    wallhopEnabled = not wallhopEnabled
+    
+    if wallhopEnabled then
+        wallhopBtn.Text = "🧱 Wallhop +"
+        wallhopBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        statusLabel.Text = "Включен ✅"
+        statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        print("✅ Wallhop включён")
+    else
+        wallhopBtn.Text = "🧱 Wallhop -"
+        wallhopBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 80)
+        statusLabel.Text = "Выключен ❌"
+        statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        print("❌ Wallhop выключён")
+    end
+end)
+
+-- ============================================================
+--  ОСНОВНОЙ ЦИКЛ WALLHOP
+-- ============================================================
+
+runService.Heartbeat:Connect(function()
+    if wallhopEnabled then
+        wallhop()
+    end
+end)
+
+-- ============================================================
+--  ПЕРЕТАСКИВАНИЕ МЕНЮ (ДЛЯ ТЕЛЕФОНА)
+-- ============================================================
+
+local dragging = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+userInput.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- ============================================================
+--  ИНИЦИАЛИЗАЦИЯ
+-- ============================================================
+
+updateCharacter()
+print("🧱 Wallhop Script загружен!")
+print("🔄 Нажми кнопку в левом верхнем углу")
