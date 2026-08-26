@@ -1,0 +1,507 @@
+-- ============================================================
+--  FLY SCRIPT С ЗАГРУЗОЧНЫМ ЭКРАНОМ
+--  By: Gregoo...
+-- ============================================================
+
+local Player = game.Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local TweenService = game:GetService("TweenService")
+
+-- ============================================================
+--  СОЗДАНИЕ ЗАГРУЗОЧНОГО ЭКРАНА
+-- ============================================================
+
+local LoadScreenGui = Instance.new("ScreenGui")
+LoadScreenGui.Name = "LoadScreenGui"
+LoadScreenGui.Parent = Player:WaitForChild("PlayerGui")
+LoadScreenGui.ResetOnSpawn = false
+LoadScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- ЧЁРНЫЙ ФОН 1
+local BlackScreen1 = Instance.new("Frame")
+BlackScreen1.Name = "BlackScreen1"
+BlackScreen1.Parent = LoadScreenGui
+BlackScreen1.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+BlackScreen1.Size = UDim2.new(1, 0, 1, 0)
+BlackScreen1.BorderSizePixel = 0
+BlackScreen1.ZIndex = 2
+
+-- Текст на первом экране
+local Text1 = Instance.new("TextLabel")
+Text1.Name = "Text1"
+Text1.Parent = BlackScreen1
+Text1.BackgroundTransparency = 1
+Text1.Size = UDim2.new(1, 0, 1, 0)
+Text1.Font = Enum.Font.SourceSansBold
+Text1.Text = "Fly Bypass.."
+Text1.TextColor3 = Color3.fromRGB(255, 255, 255)
+Text1.TextSize = 40
+Text1.ZIndex = 3
+Text1.TextScaled = true
+
+-- ВТОРОЙ ЭКРАН (появляется после 3 секунд)
+local BlackScreen2 = Instance.new("Frame")
+BlackScreen2.Name = "BlackScreen2"
+BlackScreen2.Parent = LoadScreenGui
+BlackScreen2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+BlackScreen2.Size = UDim2.new(1, 0, 1, 0)
+BlackScreen2.BorderSizePixel = 0
+BlackScreen2.ZIndex = 4
+BlackScreen2.BackgroundTransparency = 1 -- Полностью прозрачный сначала
+
+-- Текст на втором экране
+local Text2 = Instance.new("TextLabel")
+Text2.Name = "Text2"
+Text2.Parent = BlackScreen2
+Text2.BackgroundTransparency = 1
+Text2.Size = UDim2.new(1, 0, 0.6, 0)
+Text2.Position = UDim2.new(0, 0, 0.2, 0)
+Text2.Font = Enum.Font.SourceSansBold
+Text2.Text = "By: Gregoo..."
+Text2.TextColor3 = Color3.fromRGB(255, 255, 255)
+Text2.TextSize = 35
+Text2.ZIndex = 5
+Text2.TextScaled = true
+
+-- ПОЛОСКА ЗАГРУЗКИ
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Name = "LoadingFrame"
+LoadingFrame.Parent = BlackScreen2
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+LoadingFrame.Position = UDim2.new(0.15, 0, 0.7, 0)
+LoadingFrame.Size = UDim2.new(0.7, 0, 0, 25)
+LoadingFrame.ZIndex = 5
+LoadingFrame.BorderSizePixel = 0
+
+local LoadingCorner = Instance.new("UICorner")
+LoadingCorner.CornerRadius = UDim.new(0, 12)
+LoadingCorner.Parent = LoadingFrame
+
+-- ПОЛОСКА ЗАПОЛНЕНИЯ
+local LoadingBar = Instance.new("Frame")
+LoadingBar.Name = "LoadingBar"
+LoadingBar.Parent = LoadingFrame
+LoadingBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+LoadingBar.Size = UDim2.new(0, 0, 1, 0)
+LoadingBar.ZIndex = 6
+LoadingBar.BorderSizePixel = 0
+
+local LoadingBarCorner = Instance.new("UICorner")
+LoadingBarCorner.CornerRadius = UDim.new(0, 12)
+LoadingBarCorner.Parent = LoadingBar
+
+-- ТЕКСТ ПРОЦЕНТОВ
+local PercentText = Instance.new("TextLabel")
+PercentText.Name = "PercentText"
+PercentText.Parent = LoadingFrame
+PercentText.BackgroundTransparency = 1
+PercentText.Size = UDim2.new(1, 0, 1, 0)
+PercentText.Font = Enum.Font.SourceSansBold
+PercentText.Text = "0%"
+PercentText.TextColor3 = Color3.fromRGB(255, 255, 255)
+PercentText.TextSize = 14
+PercentText.ZIndex = 7
+
+-- ТЕКСТ ЗАГРУЗКИ
+local LoadingText = Instance.new("TextLabel")
+LoadingText.Name = "LoadingText"
+LoadingText.Parent = BlackScreen2
+LoadingText.BackgroundTransparency = 1
+LoadingText.Size = UDim2.new(1, 0, 0, 30)
+LoadingText.Position = UDim2.new(0, 0, 0.78, 0)
+LoadingText.Font = Enum.Font.SourceSans
+LoadingText.Text = "Загрузка..."
+LoadingText.TextColor3 = Color3.fromRGB(150, 150, 150)
+LoadingText.TextSize = 16
+LoadingText.ZIndex = 5
+LoadingText.TextScaled = true
+
+-- ============================================================
+--  АНИМАЦИЯ ЗАГРУЗКИ
+-- ============================================================
+
+local function LoadAnimation()
+    -- Показываем первый экран
+    BlackScreen1.BackgroundTransparency = 0
+    Text1.TextTransparency = 0
+    
+    -- Ждём 3 секунды
+    wait(3)
+    
+    -- Плавно убираем первый экран и показываем второй
+    local tween1 = TweenService:Create(BlackScreen1, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 1
+    })
+    local tween2 = TweenService:Create(Text1, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        TextTransparency = 1
+    })
+    
+    tween1:Play()
+    tween2:Play()
+    
+    -- Плавно появляется второй экран
+    wait(0.3)
+    local tween3 = TweenService:Create(BlackScreen2, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 0
+    })
+    tween3:Play()
+    
+    -- Анимация полоски загрузки (10 секунд)
+    local duration = 10
+    local steps = 100
+    local stepTime = duration / steps
+    
+    for i = 0, steps do
+        local percent = i / steps
+        LoadingBar.Size = UDim2.new(percent, 0, 1, 0)
+        PercentText.Text = math.floor(percent * 100) .. "%"
+        
+        -- Меняем цвет полоски (градиент)
+        local r = math.floor(percent * 255)
+        local g = math.floor(150 + (1 - percent) * 105)
+        local b = math.floor(255 - percent * 200)
+        LoadingBar.BackgroundColor3 = Color3.fromRGB(r, g, b)
+        
+        wait(stepTime)
+    end
+    
+    -- Загрузка завершена
+    LoadingBar.Size = UDim2.new(1, 0, 1, 0)
+    PercentText.Text = "100%"
+    LoadingBar.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+    
+    wait(0.3)
+    
+    -- Убираем загрузочный экран
+    local tween4 = TweenService:Create(BlackScreen2, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 1
+    })
+    tween4:Play()
+    wait(0.5)
+    
+    -- Удаляем загрузочный экран
+    LoadScreenGui:Destroy()
+end
+
+-- ============================================================
+--  ЗАПУСКАЕМ ЗАГРУЗКУ В ОТДЕЛЬНОМ ПОТОКЕ
+-- ============================================================
+
+coroutine.wrap(LoadAnimation)()
+
+-- ============================================================
+--  ОСНОВНОЙ СКРИПТ (ЗАПУСКАЕТСЯ ПОСЛЕ ЗАГРУЗКИ)
+-- ============================================================
+
+wait(11) -- Ждём завершения загрузки
+
+-- ============================================================
+--  ОСНОВНОЙ GUI
+-- ============================================================
+
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local FlyButton = Instance.new("TextButton")
+local SpeedInput = Instance.new("TextBox")
+local ToggleButton = Instance.new("TextButton")
+
+local flying = false
+local speed = 30
+local bv = nil
+local bg = nil
+local Character = nil
+local HumanoidRootPart = nil
+local moveDirection = Vector3.new(0, 0, 0)
+
+ScreenGui.Name = "FlyGui"
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ToggleButton.Position = UDim2.new(0, 10, 0, 10)
+ToggleButton.Size = UDim2.new(0, 55, 0, 55)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Text = "✈️"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 20
+ToggleButton.BorderSizePixel = 0
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 12)
+ToggleCorner.Parent = ToggleButton
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -85)
+MainFrame.Size = UDim2.new(0, 240, 0, 170)
+MainFrame.Visible = false
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = false
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 16)
+MainCorner.Parent = MainFrame
+
+local MainBg = Instance.new("Frame")
+MainBg.Name = "MainBg"
+MainBg.Parent = MainFrame
+MainBg.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+MainBg.BackgroundTransparency = 0.3
+MainBg.Size = UDim2.new(1, 0, 1, 0)
+MainBg.BorderSizePixel = 0
+
+local MainBgCorner = Instance.new("UICorner")
+MainBgCorner.CornerRadius = UDim.new(0, 16)
+MainBgCorner.Parent = MainBg
+
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Position = UDim2.new(0, 0, 0, 5)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "✈️ FLY SCRIPT"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20
+
+SpeedInput.Name = "SpeedInput"
+SpeedInput.Parent = MainFrame
+SpeedInput.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+SpeedInput.Position = UDim2.new(0, 15, 0, 50)
+SpeedInput.Size = UDim2.new(0, 210, 0, 35)
+SpeedInput.Font = Enum.Font.SourceSans
+SpeedInput.PlaceholderText = "Скорость (1-200)"
+SpeedInput.Text = "30"
+SpeedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedInput.TextSize = 16
+SpeedInput.BorderSizePixel = 0
+SpeedInput.ClearTextOnFocus = false
+
+local SpeedCorner = Instance.new("UICorner")
+SpeedCorner.CornerRadius = UDim.new(0, 8)
+SpeedCorner.Parent = SpeedInput
+
+FlyButton.Name = "FlyButton"
+FlyButton.Parent = MainFrame
+FlyButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+FlyButton.Position = UDim2.new(0, 15, 0, 105)
+FlyButton.Size = UDim2.new(0, 210, 0, 45)
+FlyButton.Font = Enum.Font.SourceSansBold
+FlyButton.Text = "🛫 Fly: ВЫКЛ"
+FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlyButton.TextSize = 18
+FlyButton.BorderSizePixel = 0
+
+local FlyCorner = Instance.new("UICorner")
+FlyCorner.CornerRadius = UDim.new(0, 8)
+FlyCorner.Parent = FlyButton
+
+-- ============================================================
+--  ОБНОВЛЕНИЕ ПЕРСОНАЖА
+-- ============================================================
+
+local function UpdateCharacter()
+    Character = Player.Character
+    if Character then
+        HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+        if HumanoidRootPart then
+            return true
+        end
+    end
+    return false
+end
+
+local function WaitForCharacter()
+    if not UpdateCharacter() then
+        Player.CharacterAdded:Wait()
+        UpdateCharacter()
+    end
+    return HumanoidRootPart ~= nil
+end
+
+-- ============================================================
+--  УПРАВЛЕНИЕ
+-- ============================================================
+
+UserInputService.InputBegan:Connect(function(input)
+    if not flying then return end
+    
+    local key = input.KeyCode
+    if key == Enum.KeyCode.W then
+        moveDirection = moveDirection + Vector3.new(0, 0, -1)
+    elseif key == Enum.KeyCode.S then
+        moveDirection = moveDirection + Vector3.new(0, 0, 1)
+    elseif key == Enum.KeyCode.A then
+        moveDirection = moveDirection + Vector3.new(-1, 0, 0)
+    elseif key == Enum.KeyCode.D then
+        moveDirection = moveDirection + Vector3.new(1, 0, 0)
+    elseif key == Enum.KeyCode.Space then
+        moveDirection = moveDirection + Vector3.new(0, 1, 0)
+    elseif key == Enum.KeyCode.LeftShift then
+        moveDirection = moveDirection + Vector3.new(0, -1, 0)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if not flying then return end
+    
+    local key = input.KeyCode
+    if key == Enum.KeyCode.W then
+        moveDirection = moveDirection - Vector3.new(0, 0, -1)
+    elseif key == Enum.KeyCode.S then
+        moveDirection = moveDirection - Vector3.new(0, 0, 1)
+    elseif key == Enum.KeyCode.A then
+        moveDirection = moveDirection - Vector3.new(-1, 0, 0)
+    elseif key == Enum.KeyCode.D then
+        moveDirection = moveDirection - Vector3.new(1, 0, 0)
+    elseif key == Enum.KeyCode.Space then
+        moveDirection = moveDirection - Vector3.new(0, 1, 0)
+    elseif key == Enum.KeyCode.LeftShift then
+        moveDirection = moveDirection - Vector3.new(0, -1, 0)
+    end
+end)
+
+-- ============================================================
+--  ФУНКЦИЯ ПОЛЁТА
+-- ============================================================
+
+local function StartFly()
+    if not WaitForCharacter() then
+        FlyButton.Text = "🛫 Ошибка!"
+        return
+    end
+    
+    local inputSpeed = tonumber(SpeedInput.Text)
+    if inputSpeed and inputSpeed > 0 and inputSpeed <= 500 then
+        speed = inputSpeed
+    else
+        speed = 30
+        SpeedInput.Text = "30"
+    end
+    
+    flying = true
+    FlyButton.Text = "🛫 Fly: ВКЛ"
+    FlyButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+    
+    bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.Parent = HumanoidRootPart
+    
+    bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+    bg.CFrame = HumanoidRootPart.CFrame
+    bg.Parent = HumanoidRootPart
+    
+    local humanoid = Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true
+    end
+    
+    moveDirection = Vector3.new(0, 0, 0)
+end
+
+local function StopFly()
+    flying = false
+    FlyButton.Text = "🛫 Fly: ВЫКЛ"
+    FlyButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    
+    if bv then bv:Destroy() bv = nil end
+    if bg then bg:Destroy() bg = nil end
+    
+    local humanoid = Character and Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = false
+    end
+    
+    moveDirection = Vector3.new(0, 0, 0)
+end
+
+-- ============================================================
+--  ПОЛЁТ
+-- ============================================================
+
+RunService.Heartbeat:Connect(function()
+    if flying and HumanoidRootPart and Camera then
+        if bv then
+            local moveVec = Vector3.new(0, 0, 0)
+            local camForward = Camera.CFrame.LookVector
+            local camRight = Camera.CFrame.RightVector
+            local camUp = Camera.CFrame.UpVector
+            
+            moveVec = (camForward * -moveDirection.Z) + (camRight * moveDirection.X) + (camUp * moveDirection.Y)
+            
+            if moveVec.Magnitude > 0.1 then
+                bv.Velocity = moveVec.Unit * speed
+            else
+                bv.Velocity = Vector3.new(0, 0, 0)
+            end
+        end
+        if bg then
+            bg.CFrame = Camera.CFrame
+        end
+    end
+end)
+
+-- ============================================================
+--  ВОЗРОЖДЕНИЕ
+-- ============================================================
+
+Player.CharacterAdded:Connect(function(char)
+    Character = char
+    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+    if flying then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = true
+        end
+        bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.Parent = HumanoidRootPart
+        
+        bg = Instance.new("BodyGyro")
+        bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+        bg.CFrame = HumanoidRootPart.CFrame
+        bg.Parent = HumanoidRootPart
+    end
+end)
+
+-- ============================================================
+--  КНОПКИ
+-- ============================================================
+
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+FlyButton.MouseButton1Click:Connect(function()
+    if not HumanoidRootPart then
+        if not WaitForCharacter() then
+            FlyButton.Text = "🛫 Ошибка!"
+            return
+        end
+    end
+    
+    if flying then
+        StopFly()
+    else
+        StartFly()
+    end
+end)
+
+ScreenGui.AncestryChanged:Connect(function()
+    if not ScreenGui.Parent then
+        StopFly()
+    end
+end)
+
+print("✅ Fly Script загружен! Управление: WASD, Пробел (вверх), Shift (вниз)")
