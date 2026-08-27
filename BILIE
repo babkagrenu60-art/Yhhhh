@@ -1,0 +1,159 @@
+local P=game:GetService("Players")
+local TS=game:GetService("TweenService")
+local plr=P.LocalPlayer
+local gui=Instance.new("ScreenGui",plr:WaitForChild("PlayerGui"))
+gui.Name="DonationSim";gui.ResetOnSpawn=false
+
+local F=Instance.new("Frame",gui)
+F.Size=UDim2.fromOffset(310,330);F.Position=UDim2.new(.5,-155,.5,-165)
+F.BackgroundColor3=Color3.fromRGB(15,15,20);Instance.new("UICorner",F).CornerRadius=UDim.new(0,18)
+local S=Instance.new("UIStroke",F);S.Thickness=2
+
+local title=Instance.new("TextLabel",F)
+title.Size=UDim2.new(1,-20,0,45);title.Position=UDim2.fromOffset(10,8)
+title.BackgroundTransparency=1;title.Text="💰 DONATION SIM"
+title.TextColor3=Color3.new(1,1,1);title.TextSize=21;title.Font=Enum.Font.GothamBold
+
+local sub=Instance.new("TextLabel",F)
+sub.Size=UDim2.new(1,-20,0,35);sub.Position=UDim2.fromOffset(10,55)
+sub.BackgroundTransparency=1;sub.Text="Виртуальная симуляция"
+sub.TextColor3=Color3.fromRGB(150,150,160);sub.TextSize=14
+
+local name=Instance.new("TextBox",F)
+name.Size=UDim2.new(1,-30,0,45);name.Position=UDim2.fromOffset(15,100)
+name.PlaceholderText="Имя игрока";name.Text="";name.TextSize=16
+name.TextColor3=Color3.new(1,1,1);name.BackgroundColor3=Color3.fromRGB(30,30,40)
+Instance.new("UICorner",name).CornerRadius=UDim.new(0,10)
+
+local avatar=Instance.new("ImageLabel",F)
+avatar.Size=UDim2.fromOffset(60,60);avatar.Position=UDim2.fromOffset(15,155)
+avatar.BackgroundColor3=Color3.fromRGB(30,30,40)
+Instance.new("UICorner",avatar).CornerRadius=UDim.new(1,0)
+
+local sum=Instance.new("TextBox",F)
+sum.Size=UDim2.new(1,-95,0,45);sum.Position=UDim2.fromOffset(85,163)
+sum.PlaceholderText="Сколько виртуально скинуть?"
+sum.Text="";sum.TextSize=15;sum.TextColor3=Color3.new(1,1,1)
+sum.BackgroundColor3=Color3.fromRGB(30,30,40)
+Instance.new("UICorner",sum).CornerRadius=UDim.new(0,10)
+
+local give=Instance.new("TextButton",F)
+give.Size=UDim2.new(1,-30,0,45);give.Position=UDim2.fromOffset(15,225)
+give.Text="💸 ВЫДАЧА (SIM)"
+give.TextSize=16;give.Font=Enum.Font.GothamBold
+give.TextColor3=Color3.new(1,1,1);give.BackgroundColor3=Color3.fromRGB(40,120,75)
+Instance.new("UICorner",give).CornerRadius=UDim.new(0,10)
+
+local report=Instance.new("TextButton",F)
+report.Size=UDim2.new(1,-30,0,40);report.Position=UDim2.fromOffset(15,275)
+report.Text="📝 Недовольство / ошибка"
+report.TextSize=14;report.TextColor3=Color3.new(1,1,1)
+report.BackgroundColor3=Color3.fromRGB(45,45,55)
+Instance.new("UICorner",report).CornerRadius=UDim.new(0,10)
+
+local function getAvatar(n)
+	local ok,id=P:GetUserIdFromNameAsync(n)
+	if ok and id then
+		local img=P:GetUserThumbnailAsync(id,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size150x150)
+		avatar.Image=img
+		return true
+	end
+	return false
+end
+
+name.FocusLost:Connect(function()
+	if name.Text~="" then
+		pcall(function()getAvatar(name.Text)end)
+	end
+end)
+
+give.MouseButton1Click:Connect(function()
+	local target=name.Text
+	local amount=tonumber(sum.Text)
+
+	if target=="" or not amount or amount<=0 then
+		sub.Text="Введите игрока и сумму"
+		return
+	end
+
+	sub.Text="Подготовка виртуальной покупки..."
+	task.wait(1)
+	sub.Text="Обработка симуляции..."
+	task.wait(1)
+
+	F.Visible=false
+
+	local result=Instance.new("Frame",gui)
+	result.Size=UDim2.fromOffset(310,240)
+	result.Position=UDim2.new(.5,-155,.5,-120)
+	result.BackgroundColor3=Color3.fromRGB(15,15,20)
+	Instance.new("UICorner",result).CornerRadius=UDim.new(0,18)
+
+	local t=Instance.new("TextLabel",result)
+	t.Size=UDim2.new(1,-20,0,100);t.Position=UDim2.fromOffset(10,20)
+	t.BackgroundTransparency=1
+	t.Text="✅ ВИРТУАЛЬНЫЙ ДОНАТ\n\n"..target.."\n+"..amount.." Virtual Robux"
+	t.TextColor3=Color3.new(1,1,1);t.TextSize=18;t.Font=Enum.Font.GothamBold
+
+	local b=Instance.new("TextButton",result)
+	b.Size=UDim2.new(1,-30,0,50);b.Position=UDim2.fromOffset(15,165)
+	b.Text="🔁 НОВАЯ СИМУЛЯЦИЯ";b.TextSize=15
+	b.TextColor3=Color3.new(1,1,1);b.BackgroundColor3=Color3.fromRGB(45,100,170)
+	Instance.new("UICorner",b).CornerRadius=UDim.new(0,10)
+
+	b.MouseButton1Click:Connect(function()
+		result:Destroy()
+		F.Visible=true
+		sub.Text="Виртуальная симуляция"
+	end)
+end)
+
+report.MouseButton1Click:Connect(function()
+	local box=Instance.new("Frame",gui)
+	box.Size=UDim2.fromOffset(310,250);box.Position=UDim2.new(.5,-155,.5,-125)
+	box.BackgroundColor3=Color3.fromRGB(15,15,20)
+	Instance.new("UICorner",box).CornerRadius=UDim.new(0,18)
+
+	local t=Instance.new("TextLabel",box)
+	t.Size=UDim2.new(1,-20,0,40);t.Position=UDim2.fromOffset(10,10)
+	t.Text="📝 Сообщить об ошибке";t.TextSize=18
+	t.Font=Enum.Font.GothamBold;t.TextColor3=Color3.new(1,1,1);t.BackgroundTransparency=1
+
+	local input=Instance.new("TextBox",box)
+	input.Size=UDim2.new(1,-30,0,100);input.Position=UDim2.fromOffset(15,55)
+	input.PlaceholderText="Напишите, что вам не понравилось..."
+	input.TextWrapped=true;input.TextYAlignment=Enum.TextYAlignment.Top
+	input.TextColor3=Color3.new(1,1,1);input.BackgroundColor3=Color3.fromRGB(30,30,40)
+	Instance.new("UICorner",input).CornerRadius=UDim.new(0,10)
+
+	local send=Instance.new("TextButton",box)
+	send.Size=UDim2.new(1,-30,0,45);send.Position=UDim2.fromOffset(15,170)
+	send.Text="📨 ОТПРАВИТЬ";send.TextSize=15
+	send.TextColor3=Color3.new(1,1,1);send.BackgroundColor3=Color3.fromRGB(50,120,80)
+	Instance.new("UICorner",send).CornerRadius=UDim.new(0,10)
+
+	send.MouseButton1Click:Connect(function()
+		if input.Text~="" then
+			send.Text="✅ Отправлено администратору"
+			task.wait(1)
+			box:Destroy()
+		end
+	end)
+end)
+
+local open=Instance.new("TextButton",gui)
+open.Size=UDim2.fromOffset(55,55);open.Position=UDim2.new(0,15,.5,-27)
+open.Text="💰";open.TextSize=25;open.TextColor3=Color3.new(1,1,1)
+open.BackgroundColor3=Color3.fromRGB(20,20,27)
+Instance.new("UICorner",open).CornerRadius=UDim.new(1,0)
+
+open.MouseButton1Click:Connect(function()
+	F.Visible=not F.Visible
+end)
+
+task.spawn(function()
+	task.wait(2)
+	sub.Text="Привет, "..plr.DisplayName.."! Рад тебя видеть 👋"
+	task.wait(5)
+	sub.Text="Виртуальная симуляция"
+end)
