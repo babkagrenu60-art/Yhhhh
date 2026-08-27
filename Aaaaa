@@ -1,0 +1,169 @@
+local P=game:GetService("Players")
+local UIS=game:GetService("UserInputService")
+local RS=game:GetService("RunService")
+local plr=P.LocalPlayer
+local gui=Instance.new("ScreenGui",plr:WaitForChild("PlayerGui"))
+gui.Name="AdminPanel";gui.ResetOnSpawn=false
+
+local f=Instance.new("Frame",gui)
+f.Size=UDim2.fromOffset(300,330);f.Position=UDim2.new(.5,-150,.5,-165)
+f.BackgroundColor3=Color3.fromRGB(15,15,20);Instance.new("UICorner",f).CornerRadius=UDim.new(0,16)
+local st=Instance.new("UIStroke",f);st.Thickness=2
+
+task.spawn(function()for h=0,1,.001 do st.Color=Color3.fromHSV(h,1,1);task.wait(.03)end end)
+
+local title=Instance.new("TextLabel",f)
+title.Size=UDim2.new(1,0,0,45);title.Text="⚡ ADMIN PANEL"
+title.TextColor3=Color3.new(1,1,1);title.TextSize=21;title.Font=Enum.Font.GothamBold
+title.BackgroundTransparency=1
+
+local tabs=Instance.new("Frame",f);tabs.Size=UDim2.new(1,-20,0,38);tabs.Position=UDim2.fromOffset(10,48)
+tabs.BackgroundTransparency=1
+
+local content=Instance.new("ScrollingFrame",f)
+content.Size=UDim2.new(1,-20,1,-98);content.Position=UDim2.fromOffset(10,92)
+content.BackgroundTransparency=1;content.ScrollBarThickness=4
+content.AutomaticCanvasSize=Enum.AutomaticSize.Y
+local layout=Instance.new("UIListLayout",content);layout.Padding=UDim.new(0,7)
+
+local function char()return plr.Character end
+local function hum()local c=char()return c and c:FindFirstChildOfClass("Humanoid")end
+local function root()local c=char()return c and c:FindFirstChild("HumanoidRootPart")end
+
+local function btn(text,fn)
+	local b=Instance.new("TextButton",content)
+	b.Size=UDim2.new(1,-5,0,42);b.Text=text;b.TextSize=16
+	b.Font=Enum.Font.GothamBold;b.TextColor3=Color3.new(1,1,1)
+	b.BackgroundColor3=Color3.fromRGB(30,30,40);b.AutoButtonColor=false
+	Instance.new("UICorner",b).CornerRadius=UDim.new(0,10)
+	b.MouseButton1Click:Connect(fn)
+	return b
+end
+
+local noclip=false
+local fly=false
+local speed=false
+
+local function clear()
+	for _,v in ipairs(content:GetChildren())do if v:IsA("TextButton")then v:Destroy()end end
+end
+
+local function movement()
+	clear()
+	btn("⚡ SPEED",function()
+		speed=not speed
+		local h=hum();if h then h.WalkSpeed=speed and 50 or 16 end
+	end)
+	btn("🦘 JUMP",function()
+		local h=hum();if h then h.JumpPower=100;h.Jump=true end
+	end)
+	btn("🕊️ FLY",function()
+		fly=not fly
+	end)
+	btn("🚧 NOCLIP",function()
+		noclip=not noclip
+	end)
+	btn("❤️ HEAL",function()
+		local h=hum();if h then h.Health=h.MaxHealth end
+	end)
+	btn("🔄 RESPAWN",function()
+		local h=hum();if h then h.Health=0 end
+	end)
+end
+
+local function fun()
+	clear()
+	btn("🤖 AI BOT",function()
+		local h=hum()
+		if h then h:MoveTo(root().Position+Vector3.new(20,0,20))end
+	end)
+	btn("🦘 SUPER JUMP",function()
+		local h=hum();if h then h.JumpPower=150;h.Jump=true end
+	end)
+	btn("🏃 NORMAL SPEED",function()
+		local h=hum();if h then h.WalkSpeed=16 end
+	end)
+end
+
+local function visual()
+	clear()
+	btn("👁️ HIGHLIGHT PLAYERS",function()
+		for _,p in ipairs(P:GetPlayers())do
+			if p~=plr and p.Character then
+				local x=p.Character:FindFirstChild("AdminHighlight")or Instance.new("Highlight",p.Character)
+				x.Name="AdminHighlight";x.Enabled=true
+			end
+		end
+	end)
+	btn("❌ REMOVE HIGHLIGHTS",function()
+		for _,p in ipairs(P:GetPlayers())do
+			if p.Character then
+				local x=p.Character:FindFirstChild("AdminHighlight")
+				if x then x:Destroy()end
+			end
+		end
+	end)
+end
+
+local function tab(name,x,fn)
+	local b=Instance.new("TextButton",tabs);b.Size=UDim2.fromOffset(85,34)
+	b.Position=UDim2.fromOffset(x,0);b.Text=name;b.TextSize=13
+	b.Font=Enum.Font.GothamBold;b.TextColor3=Color3.new(1,1,1)
+	b.BackgroundColor3=Color3.fromRGB(30,30,40)
+	Instance.new("UICorner",b).CornerRadius=UDim.new(0,8)
+	b.MouseButton1Click:Connect(fn)
+end
+
+tab("Movement",0,movement)
+tab("Visual",90,visual)
+tab("Fun",180,fun)
+
+movement()
+
+local dragging=false
+local dragStart,startPos
+
+title.InputBegan:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
+		dragging=true;dragStart=i.Position;startPos=f.Position
+	end
+end)
+
+UIS.InputChanged:Connect(function(i)
+	if dragging and(i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement)then
+		local d=i.Position-dragStart
+		f.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
+	end
+end)
+
+UIS.InputEnded:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false end
+end)
+
+RS.Stepped:Connect(function()
+	local c=char()
+	if noclip and c then
+		for _,v in ipairs(c:GetDescendants())do
+			if v:IsA("BasePart")then v.CanCollide=false end
+		end
+	end
+end)
+
+local bv
+RS.RenderStepped:Connect(function()
+	if fly and root() then
+		if not bv then
+			bv=Instance.new("BodyVelocity",root())
+			bv.MaxForce=Vector3.new(1e5,1e5,1e5)
+		end
+		local cam=workspace.CurrentCamera
+		local d=Vector3.zero
+		if UIS:IsKeyDown(Enum.KeyCode.W)then d+=cam.CFrame.LookVector end
+		if UIS:IsKeyDown(Enum.KeyCode.S)then d-=cam.CFrame.LookVector end
+		if UIS:IsKeyDown(Enum.KeyCode.A)then d-=cam.CFrame.RightVector end
+		if UIS:IsKeyDown(Enum.KeyCode.D)then d+=cam.CFrame.RightVector end
+		bv.Velocity=d*60
+	elseif bv then
+		bv:Destroy();bv=nil
+	end
+end)
