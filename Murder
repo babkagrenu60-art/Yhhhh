@@ -1,0 +1,177 @@
+local p=game.Players.LocalPlayer
+local c=p.Character or p.CharacterAdded:Wait()
+local rs=game:GetService("RunService")
+local rep=game:GetService("ReplicatedStorage")
+local events={}
+for _,n in ipairs({"MM2_TeleportToGun","MM2_WallBang","MM2_Shoot","MM2_Kill","MM2_Dodge","MM2_GuardGun"})do
+local e=rep:FindFirstChild(n)or Instance.new("RemoteEvent")e.Name=n e.Parent=rep events[n]=e
+end
+_G.KillAuraRadius=10
+_G.AutoDodgeEnabled=false
+_G.AutoShootEnabled=false
+_G.KillAuraEnabled=false
+_G.GuardGunEnabled=false
+_G.WallBangEnabled=false
+_G.ShootOnKnife=false
+local savedPos=nil
+local gui=Instance.new("ScreenGui")gui.Name="MM2Panel"gui.Parent=p.PlayerGui
+local main=Instance.new("Frame")main.Size=UDim2.new(0,480,0,550)main.Position=UDim2.new(0.5,-240,0.5,-275)main.BackgroundColor3=Color3.fromRGB(25,25,35)main.BackgroundTransparency=0.05 main.BorderSizePixel=0 main.ClipsDescendants=true main.Parent=gui
+local mc=Instance.new("UICorner")mc.CornerRadius=UDim.new(0,15)mc.Parent=main
+local title=Instance.new("TextLabel")title.Size=UDim2.new(1,0,0,45)title.BackgroundColor3=Color3.fromRGB(20,20,30)title.Text="⚡ MM2 PANEL ⚡"title.TextColor3=Color3.fromRGB(255,255,255)title.TextScaled=true title.Font=Enum.Font.GothamBold title.BorderSizePixel=0 title.Parent=main
+local close=Instance.new("TextButton")close.Size=UDim2.new(0,30,0,30)close.Position=UDim2.new(1,-35,0,8)close.BackgroundColor3=Color3.fromRGB(200,50,50)close.Text="✕"close.TextColor3=Color3.fromRGB(255,255,255)close.TextScaled=true close.Font=Enum.Font.GothamBold close.BorderSizePixel=0 close.Parent=main
+local cc=Instance.new("UICorner")cc.CornerRadius=UDim.new(0,8)cc.Parent=close
+close.MouseButton1Click:Connect(function()gui:Destroy()end)
+local tabC=Instance.new("Frame")tabC.Size=UDim2.new(1,0,0,45)tabC.Position=UDim2.new(0,0,0,45)tabC.BackgroundColor3=Color3.fromRGB(35,35,45)tabC.BackgroundTransparency=0.3 tabC.BorderSizePixel=0 tabC.Parent=main
+local cont=Instance.new("Frame")cont.Size=UDim2.new(1,-20,1,-115)cont.Position=UDim2.new(0,10,0,95)cont.BackgroundColor3=Color3.fromRGB(20,20,30)cont.BackgroundTransparency=0.2 cont.BorderSizePixel=0 cont.Parent=main
+local cc2=Instance.new("UICorner")cc2.CornerRadius=UDim.new(0,10)cc2.Parent=cont
+local tabs={"Комбат","Шериф","Убийца"}local btns={}local current=nil
+local colors={Комбат=Color3.fromRGB(0,200,0),Шериф=Color3.fromRGB(0,150,255),Убийца=Color3.fromRGB(200,0,0)}
+for i,n in ipairs(tabs)do
+local b=Instance.new("TextButton")b.Size=UDim2.new(1/#tabs,-5,1,-5)b.Position=UDim2.new((i-1)/#tabs,5,0,2)b.BackgroundColor3=Color3.fromRGB(50,50,65)b.Text=n b.TextColor3=Color3.fromRGB(255,255,255)b.TextScaled=true b.Font=Enum.Font.GothamBold b.BorderSizePixel=0 b.Parent=tabC
+local bc=Instance.new("UICorner")bc.CornerRadius=UDim.new(0,8)bc.Parent=b
+btns[n]=b
+b.MouseButton1Click:Connect(function()switch(n)end)
+end
+function switch(n)
+if current==n then return end
+current=n
+for _,ch in ipairs(cont:GetChildren())do if ch:IsA("Frame")then ch:Destroy()end end
+for name,btn in pairs(btns)do btn.BackgroundColor3=(name==n)and colors[name]or Color3.fromRGB(50,50,65)end
+if n=="Комбат"then createCombat()elseif n=="Шериф"then createSheriff()elseif n=="Убийца"then createKiller()end
+end
+function createBtn(parent,text,y,color)
+local b=Instance.new("TextButton")b.Size=UDim2.new(0.9,0,0,40)b.Position=UDim2.new(0.05,0,y,0)b.BackgroundColor3=color b.Text=text b.TextColor3=Color3.fromRGB(255,255,255)b.TextScaled=true b.Font=Enum.Font.GothamBold b.BorderSizePixel=0 b.Parent=parent
+local bc=Instance.new("UICorner")bc.CornerRadius=UDim.new(0,8)bc.Parent=b
+return b
+end
+function createCombat()
+local f=Instance.new("Frame")f.Size=UDim2.new(1,0,1,0)f.BackgroundTransparency=1 f.Parent=cont
+local t=Instance.new("TextLabel")t.Size=UDim2.new(1,0,0,35)t.BackgroundTransparency=1 t.Text="🟢 НЕВИНОВНЫЙ"t.TextColor3=Color3.fromRGB(0,255,0)t.TextScaled=true t.Font=Enum.Font.GothamBold t.Parent=f
+local b1=createBtn(f,"🔫 Авто подбор пистолета",0.15,Color3.fromRGB(0,180,0))
+b1.MouseButton1Click:Connect(function()savedPos=c:FindFirstChild("HumanoidRootPart")and c.HumanoidRootPart.CFrame or nil events.MM2_TeleportToGun:FireServer("gun")end)
+local b2=createBtn(f,"↩️ Вернуться на место",0.30,Color3.fromRGB(0,130,200))
+b2.MouseButton1Click:Connect(function()if savedPos then c.HumanoidRootPart.CFrame=savedPos end end)
+local b3=createBtn(f,"💨 Авто уклонение",0.45,Color3.fromRGB(0,150,200))
+b3.MouseButton1Click:Connect(function()_G.AutoDodgeEnabled=not _G.AutoDodgeEnabled b3.BackgroundColor3=_G.AutoDodgeEnabled and Color3.fromRGB(0,255,0)or Color3.fromRGB(0,150,200)b3.Text=_G.AutoDodgeEnabled and "✅ Авто уклонение ВКЛ"or"💨 Авто уклонение"end)
+end
+function createSheriff()
+local f=Instance.new("Frame")f.Size=UDim2.new(1,0,1,0)f.BackgroundTransparency=1 f.Parent=cont
+local t=Instance.new("TextLabel")t.Size=UDim2.new(1,0,0,35)t.BackgroundTransparency=1 t.Text="🔵 ШЕРИФ"t.TextColor3=Color3.fromRGB(0,150,255)t.TextScaled=true t.Font=Enum.Font.GothamBold t.Parent=f
+local b1=createBtn(f,"🎯 Автовыстрел",0.15,Color3.fromRGB(0,100,255))
+b1.MouseButton1Click:Connect(function()_G.AutoShootEnabled=not _G.AutoShootEnabled b1.BackgroundColor3=_G.AutoShootEnabled and Color3.fromRGB(0,255,0)or Color3.fromRGB(0,100,255)b1.Text=_G.AutoShootEnabled and "✅ Автовыстрел ВКЛ"or"🎯 Автовыстрел"end)
+local b2=createBtn(f,"🧱 Стрельба сквозь стены",0.30,Color3.fromRGB(150,0,200))
+b2.MouseButton1Click:Connect(function()_G.WallBangEnabled=not _G.WallBangEnabled b2.BackgroundColor3=_G.WallBangEnabled and Color3.fromRGB(0,255,0)or Color3.fromRGB(150,0,200)b2.Text=_G.WallBangEnabled and "✅ Стрельба сквозь стены ВКЛ"or"🧱 Стрельба сквозь стены"events.MM2_WallBang:FireServer(_G.WallBangEnabled)end)
+local b3=createBtn(f,"🔪 Стрелять при ноже",0.45,Color3.fromRGB(200,100,0))
+b3.MouseButton1Click:Connect(function()_G.ShootOnKnife=not _G.ShootOnKnife b3.BackgroundColor3=_G.ShootOnKnife and Color3.fromRGB(0,255,0)or Color3.fromRGB(200,100,0)b3.Text=_G.ShootOnKnife and "✅ Стрелять при ноже ВКЛ"or"🔪 Стрелять при ноже"end)
+end
+function createKiller()
+local f=Instance.new("Frame")f.Size=UDim2.new(1,0,1,0)f.BackgroundTransparency=1 f.Parent=cont
+local t=Instance.new("TextLabel")t.Size=UDim2.new(1,0,0,35)t.BackgroundTransparency=1 t.Text="🔴 УБИЙЦА"t.TextColor3=Color3.fromRGB(255,0,0)t.TextScaled=true t.Font=Enum.Font.GothamBold t.Parent=f
+local b1=createBtn(f,"🗡️ Kill Aura",0.15,Color3.fromRGB(200,0,0))
+b1.MouseButton1Click:Connect(function()_G.KillAuraEnabled=not _G.KillAuraEnabled b1.BackgroundColor3=_G.KillAuraEnabled and Color3.fromRGB(0,255,0)or Color3.fromRGB(200,0,0)b1.Text=_G.KillAuraEnabled and "✅ Kill Aura ВКЛ"or"🗡️ Kill Aura"end)
+local rl=Instance.new("TextLabel")rl.Size=UDim2.new(0.8,0,0,25)rl.Position=UDim2.new(0.1,0,0.27,0)rl.BackgroundTransparency=1 rl.Text="📏 Радиус: 10"rl.TextColor3=Color3.fromRGB(255,255,255)rl.TextScaled=true rl.Font=Enum.Font.Gotham rl.Parent=f
+local rs=Instance.new("Frame")rs.Size=UDim2.new(0.8,0,0,30)rs.Position=UDim2.new(0.1,0,0.35,0)rs.BackgroundColor3=Color3.fromRGB(50,50,70)rs.BorderSizePixel=0 rs.Parent=f
+local rsc=Instance.new("UICorner")rsc.CornerRadius=UDim.new(0,10)rsc.Parent=rs
+local mn=Instance.new("TextButton")mn.Size=UDim2.new(0,35,1,0)mn.Position=UDim2.new(0,0,0,0)mn.Text="−"mn.TextColor3=Color3.fromRGB(255,255,255)mn.TextScaled=true mn.BackgroundColor3=Color3.fromRGB(60,60,80)mn.BorderSizePixel=0 mn.Parent=rs
+local pl=Instance.new("TextButton")pl.Size=UDim2.new(0,35,1,0)pl.Position=UDim2.new(1,-35,0,0)pl.Text="+"pl.TextColor3=Color3.fromRGB(255,255,255)pl.TextScaled=true pl.BackgroundColor3=Color3.fromRGB(60,60,80)pl.BorderSizePixel=0 pl.Parent=rs
+local rd=Instance.new("TextLabel")rd.Size=UDim2.new(1,-70,1,0)rd.Position=UDim2.new(0,35,0,0)rd.BackgroundTransparency=1 rd.Text="10"rd.TextColor3=Color3.fromRGB(255,255,255)rd.TextScaled=true rd.Font=Enum.Font.GothamBold rd.Parent=rs
+mn.MouseButton1Click:Connect(function()_G.KillAuraRadius=math.max(1,_G.KillAuraRadius-1)rd.Text=tostring(_G.KillAuraRadius)rl.Text="📏 Радиус: ".._G.KillAuraRadius end)
+pl.MouseButton1Click:Connect(function()_G.KillAuraRadius=math.min(50,_G.KillAuraRadius+1)rd.Text=tostring(_G.KillAuraRadius)rl.Text="📏 Радиус: ".._G.KillAuraRadius end)
+local b2=createBtn(f,"🛡️ Охранять пистолет",0.55,Color3.fromRGB(200,100,0))
+b2.MouseButton1Click:Connect(function()_G.GuardGunEnabled=not _G.GuardGunEnabled b2.BackgroundColor3=_G.GuardGunEnabled and Color3.fromRGB(0,255,0)or Color3.fromRGB(200,100,0)b2.Text=_G.GuardGunEnabled and "✅ Охрана пистолета ВКЛ"or"🛡️ Охранять пистолет"end)
+end
+p.CharacterAdded:Connect(function(nc)c=nc end)
+rs.RenderStepped:Connect(function()
+if _G.AutoDodgeEnabled and c and c:FindFirstChild("HumanoidRootPart")then
+for _,o in ipairs(workspace:GetChildren())do
+if o:IsA("Tool")and o.Name:lower():find("knife")and o.Parent then
+local kp=o.Handle and o.Handle.Position or o.Position
+local cp=c.HumanoidRootPart.Position
+local dist=(kp-cp).Magnitude
+if dist<15 then
+local dir=(kp-cp).Unit
+local look=c.HumanoidRootPart.CFrame.LookVector
+if look:Dot(dir)>0.5 then
+local dd=c.HumanoidRootPart.CFrame.RightVector*(math.random(0,1)==0 and 1 or -1)*8
+c.HumanoidRootPart.CFrame=CFrame.new(cp+dd+Vector3.new(0,2,0))
+events.MM2_Dodge:FireServer()
+wait(0.1)
+end
+end
+end
+end
+end
+end)
+rs.RenderStepped:Connect(function()
+if _G.AutoShootEnabled and c and c:FindFirstChild("HumanoidRootPart")then
+local cp=c.HumanoidRootPart.Position
+for _,pl in ipairs(game.Players:GetPlayers())do
+if pl~=p and pl.Character then
+local oc=pl.Character
+local hasKnife=false
+for _,tool in ipairs(oc:GetChildren())do if tool:IsA("Tool")and tool.Name:lower():find("knife")then hasKnife=true break end end
+local isKiller=oc:FindFirstChild("KillerTag")~=nil
+if hasKnife or isKiller then
+local tp=oc:FindFirstChild("HumanoidRootPart")and oc.HumanoidRootPart.Position or nil
+if tp and(tp-cp).Magnitude<100 then events.MM2_Shoot:FireServer(pl,_G.WallBangEnabled)end
+end
+end
+end
+end
+end)
+rs.RenderStepped:Connect(function()
+if _G.KillAuraEnabled and c and c:FindFirstChild("HumanoidRootPart")then
+local cp=c.HumanoidRootPart.Position
+for _,pl in ipairs(game.Players:GetPlayers())do
+if pl~=p and pl.Character then
+local oc=pl.Character
+local tp=oc:FindFirstChild("HumanoidRootPart")and oc.HumanoidRootPart.Position or nil
+if tp and(tp-cp).Magnitude<=_G.KillAuraRadius then events.MM2_Kill:FireServer(pl)wait(0.1)end
+end
+end
+end
+end)
+rs.RenderStepped:Connect(function()
+if _G.GuardGunEnabled and c and c:FindFirstChild("HumanoidRootPart")then
+local gun=workspace:FindFirstChild("Gun")or workspace:FindFirstChild("Pistol")
+if gun then
+local gp=gun:IsA("BasePart")and gun.Position or(gun:FindFirstChild("Handle")and gun.Handle.Position)
+if gp then
+local cp=c.HumanoidRootPart.Position
+for _,pl in ipairs(game.Players:GetPlayers())do
+if pl~=p and pl.Character then
+local oc=pl.Character
+local op=oc:FindFirstChild("HumanoidRootPart")and oc.HumanoidRootPart.Position or nil
+if op and(gp-op).Magnitude<10 then
+local sp=c.HumanoidRootPart.CFrame
+c.HumanoidRootPart.CFrame=CFrame.new(gp+Vector3.new(0,2,3))
+wait(0.05)
+events.MM2_Kill:FireServer(pl)
+wait(0.1)
+c.HumanoidRootPart.CFrame=sp
+events.MM2_GuardGun:FireServer(pl)
+break
+end
+end
+end
+end
+end
+end
+end)
+rs.RenderStepped:Connect(function()
+if _G.ShootOnKnife and c and c:FindFirstChild("HumanoidRootPart")then
+for _,pl in ipairs(game.Players:GetPlayers())do
+if pl~=p and pl.Character then
+local oc=pl.Character
+for _,tool in ipairs(oc:GetChildren())do
+if tool:IsA("Tool")and tool.Name:lower():find("knife")and tool.Parent==oc then
+events.MM2_Shoot:FireServer(pl,_G.WallBangEnabled)
+break
+end
+end
+end
+end
+end
+end)
+switch("Комбат")
+print("[MM2] Панель загружена")
