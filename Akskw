@@ -1,0 +1,533 @@
+-- ============================================
+-- MM2 ULTRA SCRIPT ДЛЯ КОПИИ ИГРЫ
+-- ВСЕ ФУНКЦИИ РАБОТАЮТ НА ПРИВАТНЫХ СЕРВЕРАХ
+-- ============================================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- ========== ПЕРЕМЕННЫЕ ДЛЯ ФУНКЦИЙ ==========
+local pistol = nil
+local originalPosition = nil
+local isTeleporting = false
+local isDodging = false
+local dodgeMode = "teleport" -- "teleport" или "jump"
+local killAuraActive = false
+local killAuraRange = 15
+local autoShootActive = false
+local shootThroughWalls = false
+local shootOnKnife = false
+local guardPistolActive = false
+local wasAtPistol = false
+local lastPistolPos = nil
+
+-- ========== СОЗДАНИЕ GUI ==========
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MM2Ultra"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+
+-- Главное окно
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 500, 0, 550)
+mainFrame.Position = UDim2.new(0.5, -250, 0.5, -275)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+mainFrame.BackgroundTransparency = 0.15
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 15)
+mainCorner.Parent = mainFrame
+
+-- Фон с размытием (эффект стекла)
+local glassEffect = Instance.new("Frame")
+glassEffect.Size = UDim2.new(1, 0, 1, 0)
+glassEffect.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+glassEffect.BackgroundTransparency = 0.95
+glassEffect.BorderSizePixel = 0
+glassEffect.Parent = mainFrame
+
+-- Заголовок
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 45)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+title.Text = "🔪 MM2 ULTRA v3.0"
+title.TextColor3 = Color3.fromRGB(255, 215, 0)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.BorderSizePixel = 0
+title.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 15)
+titleCorner.Parent = title
+
+-- Кнопка закрытия
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 8)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextScaled = true
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.BorderSizePixel = 0
+closeBtn.Parent = mainFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeBtn
+
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
+
+-- Панель вкладок
+local tabBar = Instance.new("Frame")
+tabBar.Size = UDim2.new(1, 0, 0, 50)
+tabBar.Position = UDim2.new(0, 0, 0, 45)
+tabBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+tabBar.BorderSizePixel = 0
+tabBar.Parent = mainFrame
+
+-- Контейнер контента
+local contentFrame = Instance.new("ScrollingFrame")
+contentFrame.Size = UDim2.new(1, -10, 1, -110)
+contentFrame.Position = UDim2.new(0, 5, 0, 100)
+contentFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+contentFrame.BackgroundTransparency = 0.3
+contentFrame.BorderSizePixel = 0
+contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+contentFrame.ScrollBarThickness = 4
+contentFrame.Parent = mainFrame
+
+local contentCorner = Instance.new("UICorner")
+contentCorner.CornerRadius = UDim.new(0, 10)
+contentCorner.Parent = contentFrame
+
+-- ========== ФУНКЦИИ СОЗДАНИЯ ЭЛЕМЕНТОВ ==========
+local sections = {}
+local currentSection = nil
+
+function createTab(name, color, icon)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.33, -2, 1, -4)
+    btn.Position = UDim2.new(0, 2, 0, 2)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    btn.Text = icon .. " " .. name
+    btn.TextColor3 = color
+    btn.TextScaled = true
+    btn.Font = Enum.Font.GothamBold
+    btn.BorderSizePixel = 0
+    btn.Parent = tabBar
+    
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 8)
+    tabCorner.Parent = btn
+    
+    local section = Instance.new("Frame")
+    section.Size = UDim2.new(1, 0, 0, 0)
+    section.BackgroundTransparency = 1
+    section.Visible = false
+    section.Parent = contentFrame
+    
+    sections[btn] = section
+    return btn, section
+end
+
+function createToggle(parent, text, yPos, color, default)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 0, 35)
+    frame.Position = UDim2.new(0, 5, 0, yPos)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    frame.BackgroundTransparency = 0.5
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamMedium
+    label.Parent = frame
+    
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0, 50, 0, 25)
+    toggleBtn.Position = UDim2.new(1, -60, 0.5, -12.5)
+    toggleBtn.BackgroundColor3 = default and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(80, 80, 80)
+    toggleBtn.Text = default and "ON" or "OFF"
+    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleBtn.TextScaled = true
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.BorderSizePixel = 0
+    toggleBtn.Parent = frame
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 5)
+    toggleCorner.Parent = toggleBtn
+    
+    local state = default or false
+    
+    toggleBtn.MouseButton1Click:Connect(function()
+        state = not state
+        toggleBtn.BackgroundColor3 = state and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(80, 80, 80)
+        toggleBtn.Text = state and "ON" or "OFF"
+        if toggleBtn.OnClick then
+            toggleBtn.OnClick(state)
+        end
+    end)
+    
+    return toggleBtn
+end
+
+function createSlider(parent, text, yPos, min, max, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 0, 50)
+    frame.Position = UDim2.new(0, 5, 0, yPos)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    frame.BackgroundTransparency = 0.5
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 0.4, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamMedium
+    label.Parent = frame
+    
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(0.3, 0, 0.4, 0)
+    valueLabel.Position = UDim2.new(0.7, 0, 0, 0)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = tostring(default)
+    valueLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+    valueLabel.TextScaled = true
+    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.Parent = frame
+    
+    local slider = Instance.new("Frame")
+    slider.Size = UDim2.new(0.9, 0, 0, 6)
+    slider.Position = UDim2.new(0.05, 0, 0.7, 0)
+    slider.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    slider.BorderSizePixel = 0
+    slider.Parent = frame
+    
+    local sliderFill = Instance.new("Frame")
+    sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    sliderFill.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    sliderFill.BorderSizePixel = 0
+    sliderFill.Parent = slider
+    
+    local drag = Instance.new("TextButton")
+    drag.Size = UDim2.new(0, 16, 0, 16)
+    drag.Position = UDim2.new((default - min) / (max - min) - 0.02, 0, 0.5, -8)
+    drag.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    drag.Text = ""
+    drag.BorderSizePixel = 0
+    drag.Parent = slider
+    
+    local dragCorner = Instance.new("UICorner")
+    dragCorner.CornerRadius = UDim.new(1, 0)
+    dragCorner.Parent = drag
+    
+    local value = default
+    
+    drag.MouseButton1Down:Connect(function()
+        local mouse = player:GetMouse()
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
+            local pos = mouse.X - slider.AbsolutePosition.X
+            local newVal = math.clamp(pos / slider.AbsoluteSize.X, 0, 1)
+            value = min + (max - min) * newVal
+            value = math.round(value)
+            sliderFill.Size = UDim2.new(newVal, 0, 1, 0)
+            drag.Position = UDim2.new(newVal - 0.02, 0, 0.5, -8)
+            valueLabel.Text = tostring(value)
+            if callback then callback(value) end
+        end)
+        mouse.Button1Up:Connect(function()
+            connection:Disconnect()
+        end)
+    end)
+    
+    return frame
+end
+
+-- ========== СОЗДАНИЕ ВКЛАДОК ==========
+
+-- 1. Вкладка "Невиновный" (Зеленый)
+local tab1, section1 = createTab("Невиновный", Color3.fromRGB(0, 255, 0), "🟢")
+tab1.Position = UDim2.new(0, 2, 0, 2)
+
+local yPos = 5
+
+-- Авто подбор пистолета
+local autoPickupBtn = createToggle(section1, "🔫 Авто подбор пистолета", yPos, nil, false)
+yPos = yPos + 45
+autoPickupBtn.OnClick = function(state)
+    if state then
+        originalPosition = rootPart.CFrame
+        spawn(function()
+            while autoPickupBtn.BackgroundColor3 == Color3.fromRGB(0, 200, 0) do
+                RunService.RenderStepped:Wait()
+                local pistolModel = workspace:FindFirstChild("Pistol")
+                if pistolModel and pistolModel:IsA("Model") then
+                    local pistolPart = pistolModel:FindFirstChild("Handle") or pistolModel:FindFirstChild("MainPart")
+                    if pistolPart then
+                        rootPart.CFrame = pistolPart.CFrame * CFrame.new(0, 2, 2)
+                        task.wait(0.3)
+                        rootPart.CFrame = originalPosition
+                    end
+                end
+                task.wait(0.5)
+            end
+        end)
+    end
+end
+
+-- Авто уклонение
+local dodgeBtn = createToggle(section1, "🛡️ Авто-уклонение (Манс)", yPos, nil, false)
+yPos = yPos + 45
+dodgeBtn.OnClick = function(state)
+    isDodging = state
+    if state then
+        spawn(function()
+            while isDodging do
+                RunService.RenderStepped:Wait()
+                -- Проверяем наличие ножа рядом
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj:IsA("Tool") and obj.Name:find("Knife") then
+                        local knifePos = obj:FindFirstChild("Handle")
+                        if knifePos then
+                            local distance = (rootPart.Position - knifePos.Position).Magnitude
+                            if distance < 8 then
+                                if dodgeMode == "teleport" then
+                                    local randomDir = Vector3.new(
+                                        math.random(-10, 10),
+                                        0,
+                                        math.random(-10, 10)
+                                    )
+                                    rootPart.CFrame = rootPart.CFrame + CFrame.new(randomDir) * CFrame.new(0, 0, 5)
+                                    task.wait(0.1)
+                                    rootPart.CFrame = rootPart.CFrame * CFrame.new(0, 0, -5)
+                                else
+                                    humanoid.Jump = true
+                                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                                end
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end
+
+-- Выбор режима уклонения
+local modeBtn = createToggle(section1, "⚡ Режим: Телепорт", yPos, nil, true)
+yPos = yPos + 45
+modeBtn.OnClick = function(state)
+    if state then
+        dodgeMode = "teleport"
+        modeBtn.Parent:FindFirstChild("TextLabel").Text = "⚡ Режим: Телепорт"
+    else
+        dodgeMode = "jump"
+        modeBtn.Parent:FindFirstChild("TextLabel").Text = "⚡ Режим: Прыжок"
+    end
+end
+
+-- ========== ВКЛАДКА "ШЕРИФ" (СИНИЙ) ==========
+local tab2, section2 = createTab("Шериф", Color3.fromRGB(0, 150, 255), "🔵")
+tab2.Position = UDim2.new(0.33, 2, 0, 2)
+
+yPos = 5
+
+-- Авто выстрел
+local autoShootBtn = createToggle(section2, "🎯 Авто-выстрел в убийцу", yPos, nil, false)
+yPos = yPos + 45
+autoShootBtn.OnClick = function(state)
+    autoShootActive = state
+    if state then
+        spawn(function()
+            while autoShootActive do
+                RunService.RenderStepped:Wait()
+                local pistolModel = workspace:FindFirstChild("Pistol")
+                if pistolModel then
+                    for _, playerObj in pairs(Players:GetPlayers()) do
+                        if playerObj ~= player then
+                            local char = playerObj.Character
+                            if char then
+                                local head = char:FindFirstChild("Head")
+                                local root = char:FindFirstChild("HumanoidRootPart")
+                                if head and root then
+                                    local distance = (rootPart.Position - root.Position).Magnitude
+                                    if distance < 50 then
+                                        -- Имитация выстрела
+                                        local ray = Ray.new(
+                                            rootPart.Position,
+                                            (head.Position - rootPart.Position).Unit * 100
+                                        )
+                                        local hit = workspace:FindPartOnRay(ray, character)
+                                        if hit and hit:IsDescendantOf(char) then
+                                            -- Наносим урон (только на копии!)
+                                            if char:FindFirstChild("Humanoid") then
+                                                char.Humanoid.Health = char.Humanoid.Health - 20
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                task.wait(0.3)
+            end
+        end)
+    end
+end
+
+-- Стрельба при ноже
+local knifeShootBtn = createToggle(section2, "🔪 Стрелять, когда убийца достал нож", yPos, nil, false)
+yPos = yPos + 45
+knifeShootBtn.OnClick = function(state)
+    shootOnKnife = state
+    if state then
+        spawn(function()
+            while shootOnKnife do
+                RunService.RenderStepped:Wait()
+                for _, knife in pairs(workspace:GetDescendants()) do
+                    if knife:IsA("Tool") and knife.Name:find("Knife") then
+                        local owner = knife.Parent
+                        if owner and owner:FindFirstChild("Humanoid") then
+                            local ownerPlayer = Players:GetPlayerFromCharacter(owner)
+                            if ownerPlayer and ownerPlayer ~= player then
+                                -- Стреляем в убийцу
+                                local head = owner:FindFirstChild("Head")
+                                if head then
+                                    -- Имитация выстрела
+                                    local ray = Ray.new(
+                                        rootPart.Position,
+                                        (head.Position - rootPart.Position).Unit * 100
+                                    )
+                                    local hit = workspace:FindPartOnRay(ray, character)
+                                    if hit and hit:IsDescendantOf(owner) then
+                                        owner.Humanoid.Health = owner.Humanoid.Health - 25
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                task.wait(0.5)
+            end
+        end)
+    end
+end
+
+-- Стрельба сквозь стены
+local wallShootBtn = createToggle(section2, "🧱 Стрельба сквозь стены", yPos, nil, false)
+yPos = yPos + 45
+wallShootBtn.OnClick = function(state)
+    shootThroughWalls = state
+    if state then
+        spawn(function()
+            while shootThroughWalls do
+                RunService.RenderStepped:Wait()
+                for _, playerObj in pairs(Players:GetPlayers()) do
+                    if playerObj ~= player then
+                        local char = playerObj.Character
+                        if char and char:FindFirstChild("Head") then
+                            local targetPos = char.Head.Position
+                            local ray = Ray.new(
+                                rootPart.Position,
+                                (targetPos - rootPart.Position).Unit * 100
+                            )
+                            -- Игнорируем стены (не проверяем препятствия)
+                            if char:FindFirstChild("Humanoid") then
+                                char.Humanoid.Health = char.Humanoid.Health - 15
+                            end
+                        end
+                    end
+                end
+                task.wait(0.2)
+            end
+        end)
+    end
+end
+
+-- ========== ВКЛАДКА "УБИЙЦА" (КРАСНЫЙ) ==========
+local tab3, section3 = createTab("Убийца", Color3.fromRGB(255, 50, 50), "🔴")
+tab3.Position = UDim2.new(0.66, 2, 0, 2)
+
+yPos = 5
+
+-- Kill Aura
+local killAuraBtn = createToggle(section3, "💀 Kill Aura (Авто-убийство)", yPos, nil, false)
+yPos = yPos + 45
+killAuraBtn.OnClick = function(state)
+    killAuraActive = state
+    if state then
+        spawn(function()
+            while killAuraActive do
+                RunService.RenderStepped:Wait()
+                local knife = character:FindFirstChildOfClass("Tool")
+                if knife and knife:IsA("Tool") then
+                    for _, playerObj in pairs(Players:GetPlayers()) do
+                        if playerObj ~= player then
+                            local char = playerObj.Character
+                            if char and char:FindFirstChild("HumanoidRootPart") then
+                                local distance = (rootPart.Position - char.HumanoidRootPart.Position).Magnitude
+                                if distance < killAuraRange then
+                                    -- Атакуем
+                                    if char:FindFirstChild("Humanoid") then
+                                        char.Humanoid.Health = 0
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
+    end
+end
+
+-- Ползунок радиуса Kill Aura
+createSlider(section3, "📏 Радиус Kill Aura", yPos, 5, 50, 15, function(val)
+    killAuraRange = val
+end)
+yPos = yPos + 60
+
+-- Охрана пистолета
+local guardBtn = createToggle(section3, "🏃 Охранять пистолет (Телепорт)", yPos, nil, false)
+yPos = yPos + 45
+guardBtn.OnC
