@@ -1,0 +1,270 @@
+-- ============================================
+-- УНИВЕРСАЛЬНЫЙ СКРИПТ ДЛЯ ЛЮБОЙ КОПИИ MM2
+-- ============================================
+local Players=game:GetService("Players")
+local RunService=game:GetService("RunService")
+local UserInputService=game:GetService("UserInputService")
+local player=Players.LocalPlayer
+local character=player.Character or player.CharacterAdded:Wait()
+local humanoid=character:WaitForChild("Humanoid")
+local rootPart=character:WaitForChild("HumanoidRootPart")
+
+-- ========== ПОИСК ПРЕДМЕТОВ (АВТОМАТИЧЕСКИ) ==========
+function findPistol()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Tool") or obj:IsA("BasePart") then
+            local name = obj.Name:lower()
+            if name:find("pistol") or name:find("gun") or name:find("weapon") or 
+               name:find("handgun") or name:find("shoot") or name:find("пистолет") then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+function findKnife()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Tool") or obj:IsA("BasePart") then
+            local name = obj.Name:lower()
+            if name:find("knife") or name:find("blade") or name:find("dagger") or 
+               name:find("melee") or name:find("нож") then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+-- ========== GUI ==========
+local screenGui=Instance.new("ScreenGui")
+screenGui.Name="MM2Ultra"
+screenGui.Parent=player:WaitForChild("PlayerGui")
+
+local mainFrame=Instance.new("Frame")
+mainFrame.Size=UDim2.new(0,450,0,500)
+mainFrame.Position=UDim2.new(0.5,-225,0.5,-250)
+mainFrame.BackgroundColor3=Color3.fromRGB(15,15,20)
+mainFrame.BackgroundTransparency=0.1
+mainFrame.BorderSizePixel=0
+mainFrame.Active=true
+mainFrame.Draggable=true
+mainFrame.Parent=screenGui
+
+local corner=Instance.new("UICorner")
+corner.CornerRadius=UDim.new(0,12)
+corner.Parent=mainFrame
+
+local title=Instance.new("TextLabel")
+title.Size=UDim2.new(1,0,0,40)
+title.BackgroundColor3=Color3.fromRGB(25,25,30)
+title.Text="🔪 MM2 ULTRA"
+title.TextColor3=Color3.fromRGB(255,215,0)
+title.TextScaled=true
+title.Font=Enum.Font.GothamBold
+title.Parent=mainFrame
+
+-- Вкладки
+local tabBar=Instance.new("Frame")
+tabBar.Size=UDim2.new(1,0,0,45)
+tabBar.Position=UDim2.new(0,0,0,40)
+tabBar.BackgroundColor3=Color3.fromRGB(20,20,25)
+tabBar.BorderSizePixel=0
+tabBar.Parent=mainFrame
+
+local contentFrame=Instance.new("Frame")
+contentFrame.Size=UDim2.new(1,-10,1,-100)
+contentFrame.Position=UDim2.new(0,5,0,90)
+contentFrame.BackgroundColor3=Color3.fromRGB(25,25,30)
+contentFrame.BorderSizePixel=0
+contentFrame.Parent=mainFrame
+
+local contentCorner=Instance.new("UICorner")
+contentCorner.CornerRadius=UDim.new(0,10)
+contentCorner.Parent=contentFrame
+
+local sections={}
+
+function createTab(name,color)
+    local btn=Instance.new("TextButton")
+    btn.Size=UDim2.new(0.33,-2,1,-4)
+    btn.Position=UDim2.new(0,2,0,2)
+    btn.BackgroundColor3=Color3.fromRGB(35,35,40)
+    btn.Text=name
+    btn.TextColor3=color
+    btn.TextScaled=true
+    btn.Font=Enum.Font.GothamBold
+    btn.BorderSizePixel=0
+    btn.Parent=tabBar
+    
+    local section=Instance.new("Frame")
+    section.Size=UDim2.new(1,0,0,0)
+    section.BackgroundTransparency=1
+    section.Visible=false
+    section.Parent=contentFrame
+    sections[btn]=section
+    return btn,section
+end
+
+function createButton(parent,text,yPos,color,callback)
+    local btn=Instance.new("TextButton")
+    btn.Size=UDim2.new(0.95,0,0,40)
+    btn.Position=UDim2.new(0.025,0,0,yPos)
+    btn.BackgroundColor3=color or Color3.fromRGB(50,50,60)
+    btn.Text=text
+    btn.TextColor3=Color3.fromRGB(255,255,255)
+    btn.TextScaled=true
+    btn.Font=Enum.Font.GothamMedium
+    btn.BorderSizePixel=0
+    btn.Parent=parent
+    local btnCorner=Instance.new("UICorner")
+    btnCorner.CornerRadius=UDim.new(0,8)
+    btnCorner.Parent=btn
+    btn.MouseButton1Click:Connect(function()
+        btn.BackgroundColor3=Color3.fromRGB(150,150,150)
+        task.wait(0.1)
+        btn.BackgroundColor3=color or Color3.fromRGB(50,50,60)
+        if callback then callback() end
+    end)
+    return btn
+end
+
+-- ========== ВКЛАДКА 1: НЕВИНОВНЫЙ ==========
+local tab1,section1=createTab("🟢 Невиновный",Color3.fromRGB(0,255,0))
+tab1.Position=UDim2.new(0,2,0,2)
+
+local y=10
+createButton(section1,"🔫 Авто подбор пистолета",y,Color3.fromRGB(0,180,0),function()
+    local pistol=findPistol()
+    if pistol then
+        local pos=rootPart.CFrame
+        if pistol:IsA("BasePart") then
+            rootPart.CFrame=pistol.CFrame*CFrame.new(0,2,2)
+        else
+            local handle=pistol:FindFirstChild("Handle") or pistol:FindFirstChild("MainPart")
+            if handle then rootPart.CFrame=handle.CFrame*CFrame.new(0,2,2) end
+        end
+        task.wait(0.3)
+        rootPart.CFrame=pos
+        print("✅ Пистолет подобран!")
+    else
+        print("❌ Пистолет не найден!")
+    end
+end)
+
+createButton(section1,"🛡️ Уклонение (Манс)",y+50,Color3.fromRGB(0,150,100),function()
+    local randomDir=Vector3.new(math.random(-15,15),0,math.random(-15,15))
+    rootPart.CFrame=rootPart.CFrame*CFrame.new(randomDir)*CFrame.new(0,0,5)
+    task.wait(0.1)
+    rootPart.CFrame=rootPart.CFrame*CFrame.new(0,0,-5)
+    print("✅ Уклонение!")
+end)
+
+-- ========== ВКЛАДКА 2: ШЕРИФ ==========
+local tab2,section2=createTab("🔵 Шериф",Color3.fromRGB(0,150,255))
+tab2.Position=UDim2.new(0.33,2,0,2)
+
+y=10
+createButton(section2,"🎯 Авто-выстрел",y,Color3.fromRGB(0,100,255),function()
+    for _,plr in pairs(Players:GetPlayers()) do
+        if plr~=player and plr.Character then
+            local target=plr.Character:FindFirstChild("Head")
+            if target then
+                print("🔫 Стреляем в",plr.Name)
+                if plr.Character:FindFirstChild("Humanoid") then
+                    plr.Character.Humanoid.Health=plr.Character.Humanoid.Health-20
+                end
+            end
+        end
+    end
+end)
+
+createButton(section2,"🧱 Стрельба сквозь стены",y+50,Color3.fromRGB(100,180,255),function()
+    for _,plr in pairs(Players:GetPlayers()) do
+        if plr~=player and plr.Character then
+            if plr.Character:FindFirstChild("Humanoid") then
+                plr.Character.Humanoid.Health=plr.Character.Humanoid.Health-15
+                print("💀 Убит через стену:",plr.Name)
+            end
+        end
+    end
+end)
+
+-- ========== ВКЛАДКА 3: УБИЙЦА ==========
+local tab3,section3=createTab("🔴 Убийца",Color3.fromRGB(255,50,50))
+tab3.Position=UDim2.new(0.66,2,0,2)
+
+y=10
+createButton(section3,"💀 Kill Aura",y,Color3.fromRGB(200,0,0),function()
+    for _,plr in pairs(Players:GetPlayers()) do
+        if plr~=player and plr.Character then
+            local dist=(rootPart.Position-plr.Character.HumanoidRootPart.Position).Magnitude
+            if dist<15 then
+                if plr.Character:FindFirstChild("Humanoid") then
+                    plr.Character.Humanoid.Health=0
+                    print("💀 Убит:",plr.Name)
+                end
+            end
+        end
+    end
+end)
+
+createButton(section3,"🏃 Охранять пистолет",y+50,Color3.fromRGB(220,50,50),function()
+    local pistol=findPistol()
+    if pistol then
+        local pos=rootPart.CFrame
+        if pistol:IsA("BasePart") then
+            rootPart.CFrame=pistol.CFrame*CFrame.new(0,2,3)
+        else
+            local handle=pistol:FindFirstChild("Handle") or pistol:FindFirstChild("MainPart")
+            if handle then rootPart.CFrame=handle.CFrame*CFrame.new(0,2,3) end
+        end
+        task.wait(0.3)
+        for _,plr in pairs(Players:GetPlayers()) do
+            if plr~=player and plr.Character then
+                local dist=(rootPart.Position-plr.Character.HumanoidRootPart.Position).Magnitude
+                if dist<5 and plr.Character:FindFirstChild("Humanoid") then
+                    plr.Character.Humanoid.Health=0
+                    print("💀 Убит у пистолета:",plr.Name)
+                end
+            end
+        end
+        task.wait(0.3)
+        rootPart.CFrame=pos
+    else
+        print("❌ Пистолет не найден!")
+    end
+end)
+
+-- ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ==========
+function switchTab(tab,section)
+    for _,s in pairs(sections) do
+        s.Visible=false
+        s.Size=UDim2.new(1,0,0,0)
+    end
+    for _,t in pairs(tabBar:GetChildren()) do
+        if t:IsA("TextButton") then t.BackgroundColor3=Color3.fromRGB(35,35,40) end
+    end
+    section.Visible=true
+    section.Size=UDim2.new(1,0,0,500)
+    tab.BackgroundColor3=Color3.fromRGB(55,55,65)
+end
+
+tab1.MouseButton1Click:Connect(function() switchTab(tab1,section1) end)
+tab2.MouseButton1Click:Connect(function() switchTab(tab2,section2) end)
+tab3.MouseButton1Click:Connect(function() switchTab(tab3,section3) end)
+
+switchTab(tab1,section1)
+
+-- ========== ГОРЯЧИЕ КЛАВИШИ ==========
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode==Enum.KeyCode.RightAlt then
+        mainFrame.Visible=not mainFrame.Visible
+    end
+end)
+
+-- ========== ИНФОРМАЦИЯ ==========
+print("✅ MM2 ULTRA ЗАГРУЖЕН!")
+print("🔍 Ищем пистолет:", findPistol() and "НАЙДЕН" or "НЕ НАЙДЕН")
+print("🔍 Ищем нож:", findKnife() and "НАЙДЕН" or "НЕ НАЙДЕН")
+print("📌 RightAlt - Скрыть GUI")
