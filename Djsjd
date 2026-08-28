@@ -1,0 +1,190 @@
+-- Загрузка библиотеки Vexanium (красивая и легкая)
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/vexanium/UI-Library/main/source.lua"))()
+
+-- Создание главного окна
+local Window = Library:CreateWindow({
+    Title = "Build A Boat • Treasure TP",
+    SubTitle = "by AI Assistant",
+    Theme = "Dark",
+    Size = UDim2.fromOffset(450, 350),
+    Acrylic = true,
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+-- КНОПКА ДЛЯ ОТКРЫТИЯ/ЗАКРЫТИЯ
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Position = UDim2.new(0, 10, 0.5, -25)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+ToggleButton.BackgroundTransparency = 0.2
+ToggleButton.Text = "🚢"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 22
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Visible = false
+ToggleButton.Parent = game.Players.LocalPlayer.PlayerGui
+
+-- Анимация кнопки
+local TweenService = game:GetService("TweenService")
+ToggleButton.MouseEnter:Connect(function()
+    TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundTransparency = 0, Size = UDim2.new(0, 55, 0, 55)}):Play()
+end)
+ToggleButton.MouseLeave:Connect(function()
+    TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundTransparency = 0.2, Size = UDim2.new(0, 50, 0, 50)}):Play()
+end)
+
+-- Функции открытия/закрытия
+local function OpenMenu()
+    Window:Show()
+    ToggleButton.Visible = false
+end
+local function CloseMenu()
+    Window:Hide()
+    ToggleButton.Visible = true
+end
+ToggleButton.MouseButton1Click:Connect(OpenMenu)
+
+-- Глобальные переменные
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+-- ========== ТЕЛЕПОРТ К СОКРОВИЩАМ ==========
+local function TeleportToTreasure()
+    local player = LocalPlayer
+    local character = player.Character
+    if not character then
+        Library:Notify({Title = "Ошибка", Content = "Персонаж не найден!", Duration = 2})
+        return
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        Library:Notify({Title = "Ошибка", Content = "HumanoidRootPart не найден!", Duration = 2})
+        return
+    end
+    
+    -- Ищем сокровище
+    local treasure = nil
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Part") and v.Name == "Treasure" then
+            treasure = v
+            break
+        end
+    end
+    
+    if not treasure then
+        Library:Notify({Title = "Ошибка", Content = "Сокровище не найдено!", Duration = 2})
+        return
+    end
+    
+    -- Сохраняем позицию и телепортируемся
+    local oldPos = hrp.CFrame
+    hrp.CFrame = treasure.CFrame * CFrame.new(0, 5, 0)
+    task.wait(0.3)
+    
+    -- Проверяем, подобрали ли сокровище
+    if workspace:FindFirstChild("Treasure") then
+        hrp.CFrame = oldPos
+        Library:Notify({Title = "Неудача", Content = "Сокровище еще не появилось!", Duration = 2})
+    else
+        Library:Notify({Title = "Успех", Content = "Сокровище подобрано!", Duration = 2})
+    end
+end
+
+-- ========== ВКЛАДКИ ==========
+local Tabs = {
+    Main = Window:AddTab({ Title = "Главная", Icon = "home" }),
+    Settings = Window:AddTab({ Title = "Настройки", Icon = "settings" })
+}
+
+-- === ВКЛАДКА: ГЛАВНАЯ ===
+Tabs.Main:AddParagraph({
+    Title = "🚢 Build A Boat For Treasure",
+    Content = "Телепорт к сокровищам"
+})
+
+Tabs.Main:AddButton({
+    Title = "💰 Телепорт к сокровищу",
+    Description = "Мгновенный TP к сундуку",
+    Callback = function()
+        TeleportToTreasure()
+    end
+})
+
+Tabs.Main:AddButton({
+    Title = "🔄 Авто-фарм (цикл)",
+    Description = "Автоматический сбор сокровищ",
+    Callback = function()
+        Library:Notify({Title = "Авто-фарм", Content = "Запущен! Идет сбор...", Duration = 2})
+        task.spawn(function()
+            while _G.AutoFarm do
+                TeleportToTreasure()
+                task.wait(2)
+            end
+        end)
+    end
+})
+
+local autoFarmEnabled = false
+Tabs.Main:AddToggle("AutoFarm", {
+    Title = "Включить авто-фарм",
+    Description = "Бесконечный цикл сбора",
+    Default = false,
+    Callback = function(state)
+        _G.AutoFarm = state
+        if state then
+            Library:Notify({Title = "Авто-фарм", Content = "Включен!", Duration = 2})
+        else
+            Library:Notify({Title = "Авто-фарм", Content = "Выключен!", Duration = 2})
+        end
+    end
+})
+
+-- === ВКЛАДКА: НАСТРОЙКИ ===
+Tabs.Settings:AddParagraph({
+    Title = "⚙️ Управление",
+    Content = "🔄 Нажмите Left Control для открытия/закрытия"
+})
+
+Tabs.Settings:AddButton({
+    Title = "Закрыть меню",
+    Description = "Скрыть панель",
+    Callback = function()
+        CloseMenu()
+    end
+})
+
+Tabs.Settings:AddButton({
+    Title = "Открыть меню",
+    Description = "Показать панель",
+    Callback = function()
+        OpenMenu()
+    end
+})
+
+-- ========== УПРАВЛЕНИЕ ==========
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.LeftControl then
+        if Window.Visible then
+            CloseMenu()
+        else
+            OpenMenu()
+        end
+    end
+end)
+
+-- Закрытие через крестик
+local oldClose = Window.Close
+Window.Close = function()
+    CloseMenu()
+end
+
+-- Уведомление
+Library:Notify({
+    Title = "Build A Boat • TP",
+    Content = "Готово! Нажмите Left Control",
+    Duration = 5
+})
