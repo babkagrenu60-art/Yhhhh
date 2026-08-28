@@ -1,0 +1,396 @@
+-- Загрузка библиотеки интерфейса
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+-- Создание главного окна
+local Window = Fluent:CreateWindow({
+    Title = "MM2 Premium Hub",
+    SubTitle = "by AI Assistant",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+-- Вкладки
+local Tabs = {
+    Main = Window:AddTab({ Title = "Видение ролей", Icon = "eye" }),
+    Combat = Window:AddTab({ Title = "Комбат", Icon = "sword" })
+}
+
+-- Глобальные переменные
+local Settings = {
+    HitboxSize = 10,
+    ManceType = "Телепорт",
+    ShootWhenDrawn = false,
+    Wallbang = false,
+    GuardPistol = false
+}
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Функция для определения роли игрока
+local function getPlayerRole(player)
+    if player == LocalPlayer then return "Вы" end
+    
+    local char = player.Character
+    local backpack = player.Backpack
+    
+    if not char then return "Неизвестно" end
+    
+    -- Проверяем наличие оружия в руках или в рюкзаке
+    local hasKnife = char:FindFirstChild("Knife") or backpack:FindFirstChild("Knife")
+    local hasGun = char:FindFirstChild("Gun") or backpack:FindFirstChild("Gun")
+    
+    if hasKnife and hasGun then
+        return "Убийца/Шериф"
+    elseif hasKnife then
+        return "Убийца"
+    elseif hasGun then
+        return "Шериф"
+    else
+        return "Невиновный"
+    end
+end
+
+-- Функция для создания ESP
+local function createESP(player)
+    if player == LocalPlayer then return end
+    
+    local char = player.Character
+    if not char then return end
+    
+    -- Удаляем старый ESP
+    if char:FindFirstChild("RoleESP") then
+        char.RoleESP:Destroy()
+    end
+    
+    local role = getPlayerRole(player)
+    local color
+    
+    if role == "Убийца" then
+        color = Color3.fromRGB(255, 0, 0)
+    elseif role == "Шериф" then
+        color = Color3.fromRGB(0, 0, 255)
+    else
+        color = Color3.fromRGB(0, 255, 0)
+    end
+    
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "RoleESP"
+    box.Size = Vector3.new(4, 6, 4)
+    box.Color3 = color
+    box.AlwaysOnTop = true
+    box.ZIndex = 5
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        box.Adornee = hrp
+        box.Parent = char
+    end
+end
+
+-- Обновление ESP
+local function updateESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        createESP(player)
+    end
+end
+
+-- Подписка на события
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        createESP(player)
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function()
+    task.wait(0.1)
+    updateESP()
+end)
+
+-- Запуск ESP
+task.spawn(function()
+    while task.wait(1) do
+        updateESP()
+    end
+end)
+
+---------------------------------------------------------
+-- [ВКЛАДКА 1: ВИДЕНИЕ РОЛЕЙ]
+---------------------------------------------------------
+Tabs.Main:AddParagraph({
+    Title = "Информация о ролях",
+    Content = "🔴 Красный - Убийца\n🔵 Синий - Шериф\n🟢 Зеленый - Невиновный"
+})
+
+-- Кнопка обновления ESP
+Tabs.Main:AddButton({
+    Title = "Обновить ESP",
+    Description = "Пересоздать подсветку игроков",
+    Callback = function()
+        updateESP()
+        Fluent:Notify({
+            Title = "Готово",
+            Content = "ESP обновлен!",
+            Duration = 2
+        })
+    end
+})
+
+---------------------------------------------------------
+-- [ВКЛАДКА 2: КОМБАТ]
+---------------------------------------------------------
+
+-- === РАЗДЕЛ: НЕВИНОВНЫЙ ===
+local InnocentSection = Tabs.Combat:AddSection("Невиновный")
+
+InnocentSection:AddButton({
+    Title = "Авто-подбор пистолета",
+    Description = "ТП к упавшему пистолету",
+    Callback = function()
+        local gunDrop = workspace:FindFirstChild("GunDrop")
+        if gunDrop and LocalPlayer.Character then
+            local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local oldPos = hrp.CFrame
+                hrp.CFrame = gunDrop.CFrame * CFrame.new(0, 2, 0)
+                task.wait(0.3)
+                hrp.CFrame = oldPos
+                Fluent:Notify({
+                    Title = "Успех",
+                    Content = "Пистолет подобран!",
+                    Duration = 2
+                })
+            end
+        else
+            Fluent:Notify({
+                Title = "Ошибка",
+                Content = "Пистолет не найден!",
+                Duration = 2
+            })
+        end
+    end
+})
+
+-- Переключатель манса
+local manceEnabled = false
+InnocentSection:AddToggle("AutoMance", {
+    Title = "Авто-манс (Уклонение)",
+    Default = false,
+    Callback = function(state)
+        manceEnabled = state
+    end
+})
+
+-- Запуск манса
+task.spawn(function()
+    while task.wait(0.1) do
+        if manceEnabled and LocalPlayer.Character then
+            local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                for _, v in pairs(workspace:GetChildren()) do
+                    if v:IsA("BasePart") and v.Name == "Knife" then
+                        local dist = (v.Position - hrp.Position).Magnitude
+                        if dist < 15 then
+                            if Settings.ManceType == "Телепорт" then
+                                local newPos = hrp.Position + Vector3.new(
+                                    math.random(-20, 20),
+                                    0,
+                                    math.random(-20, 20)
+                                )
+                                hrp.CFrame = CFrame.new(newPos)
+                            else
+                                local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                                if humanoid then
+                                    humanoid.Jump = true
+                                end
+                            end
+                            task.wait(0.5)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+InnocentSection:AddDropdown("ManceMode", {
+    Title = "Тип манса",
+    Values = {"Телепорт", "Прыжок"},
+    Default = "Телепорт",
+    Callback = function(value)
+        Settings.ManceType = value
+    end
+})
+
+-- === РАЗДЕЛ: ШЕРИФ ===
+local SheriffSection = Tabs.Combat:AddSection("Шериф")
+
+local autoShootEnabled = false
+SheriffSection:AddToggle("AutoShoot", {
+    Title = "Авто-выстрел в Убийцу",
+    Default = false,
+    Callback = function(state)
+        autoShootEnabled = state
+    end
+})
+
+-- Поиск убийцы
+local function findMurderer()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local char = player.Character
+            local backpack = player.Backpack
+            if char and (char:FindFirstChild("Knife") or backpack:FindFirstChild("Knife")) then
+                return player
+            end
+        end
+    end
+    return nil
+end
+
+-- Авто-выстрел
+task.spawn(function()
+    while task.wait(0.15) do
+        if autoShootEnabled and LocalPlayer.Character then
+            local gun = LocalPlayer.Character:FindFirstChild("Gun")
+            if gun then
+                local murderer = findMurderer()
+                if murderer and murderer.Character then
+                    local hrp = murderer.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        -- Проверяем, держит ли убийца нож
+                        local hasKnifeOut = murderer.Character:FindFirstChild("Knife")
+                        if not Settings.ShootWhenDrawn or (Settings.ShootWhenDrawn and hasKnifeOut) then
+                            -- Симуляция выстрела (упрощенная)
+                            local mouse = LocalPlayer:GetMouse()
+                            if mouse then
+                                local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(hrp.Position)
+                                if onScreen then
+                                    mouse.Hit = CFrame.new(hrp.Position)
+                                    -- Эмулируем клик
+                                    UserInputService.InputBegan:Fire(mouse, Enum.UserInputType.MouseButton1)
+                                    task.wait(0.05)
+                                    UserInputService.InputEnded:Fire(mouse, Enum.UserInputType.MouseButton1)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+SheriffSection:AddToggle("ShootDrawn", {
+    Title = "Стрелять только когда убийца с ножом",
+    Default = false,
+    Callback = function(state)
+        Settings.ShootWhenDrawn = state
+    end
+})
+
+-- === РАЗДЕЛ: УБИЙЦА ===
+local MurdererSection = Tabs.Combat:AddSection("Убийца")
+
+local killAuraEnabled = false
+MurdererSection:AddToggle("KillAura", {
+    Title = "Килл-аура ножа",
+    Default = false,
+    Callback = function(state)
+        killAuraEnabled = state
+    end
+})
+
+-- Килл-аура
+task.spawn(function()
+    while task.wait(0.05) do
+        if killAuraEnabled and LocalPlayer.Character then
+            local knife = LocalPlayer.Character:FindFirstChild("Knife")
+            if knife then
+                local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    for _, player in pairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character then
+                            local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
+                            if targetHrp then
+                                local dist = (hrp.Position - targetHrp.Position).Magnitude
+                                if dist <= Settings.HitboxSize then
+                                    -- Убиваем игрока
+                                    local humanoid = player.Character:FindFirstChild("Humanoid")
+                                    if humanoid and humanoid.Health > 0 then
+                                        humanoid.Health = 0
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+MurdererSection:AddSlider("HitboxSlider", {
+    Title = "Дистанция килл-ауры",
+    Min = 5,
+    Max = 30,
+    Default = 10,
+    Rounding = 1,
+    Callback = function(value)
+        Settings.HitboxSize = value
+    end
+})
+
+-- Охрана пистолета
+local guardEnabled = false
+MurdererSection:AddToggle("GuardPistol", {
+    Title = "Охранять пистолет",
+    Default = false,
+    Callback = function(state)
+        guardEnabled = state
+    end
+})
+
+task.spawn(function()
+    local lastPos = nil
+    while task.wait(0.2) do
+        if guardEnabled and LocalPlayer.Character then
+            local gunDrop = workspace:FindFirstChild("GunDrop")
+            if gunDrop then
+                local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    for _, player in pairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character then
+                            local targetHrp = player.Character:FindFirstChild("HumanoidRootPart")
+                            if targetHrp then
+                                local dist = (targetHrp.Position - gunDrop.Position).Magnitude
+                                if dist < 8 then
+                                    lastPos = hrp.CFrame
+                                    hrp.CFrame = targetHrp.CFrame
+                                    task.wait(0.3)
+                                    if lastPos then
+                                        hrp.CFrame = lastPos
+                                    end
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Уведомление о загрузке
+Fluent:Notify({
+    Title = "MM2 Скрипт",
+    Content = "Интерфейс загружен! Нажми Left Control для открытия меню.",
+    Duration = 5
+})
