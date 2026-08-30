@@ -1,0 +1,309 @@
+-- Скрипт: Аимбот + ESP + Ночное видение
+local player = game.Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local aimbotEnabled = false
+local espEnabled = false
+local nightVisionEnabled = false
+
+-- Создание GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AimbotESP_GUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Главная рамка
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 280, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.Parent = mainFrame
+
+-- Заголовок
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.Position = UDim2.new(0, 0, 0, 0)
+titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = titleBar
+
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(1, -80, 0, 40)
+titleText.Position = UDim2.new(0, 10, 0, 0)
+titleText.BackgroundTransparency = 1
+titleText.Text = "Hack Menu"
+titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleText.Font = Enum.Font.GothamBold
+titleText.TextSize = 16
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Parent = titleBar
+
+-- Кнопка закрытия
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 35, 0, 35)
+closeButton.Position = UDim2.new(1, -40, 0, 2)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+closeButton.Text = "✕"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 18
+closeButton.BorderSizePixel = 0
+closeButton.ZIndex = 10
+closeButton.Parent = titleBar
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 5)
+closeCorner.Parent = closeButton
+
+-- Кнопка открытия
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 60, 0, 60)
+openButton.Position = UDim2.new(0, 10, 0.5, -30)
+openButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+openButton.Text = "GUI"
+openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+openButton.Font = Enum.Font.GothamBold
+openButton.TextSize = 14
+openButton.BorderSizePixel = 0
+openButton.Visible = false
+openButton.ZIndex = 10
+openButton.Parent = screenGui
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(0, 10)
+openCorner.Parent = openButton
+
+-- Обработчики закрытия/открытия
+closeButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    openButton.Visible = true
+end)
+
+openButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    openButton.Visible = false
+end)
+
+-- Функция создания кнопки
+local function createButton(text, position, color)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -20, 0, 40)
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 14
+    button.BorderSizePixel = 0
+    button.Parent = mainFrame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = button
+    
+    return button
+end
+
+-- Создание кнопок
+local aimbotButton = createButton("Аимбот: OFF", UDim2.new(0, 10, 0, 50), Color3.fromRGB(0, 170, 0))
+local espButton = createButton("ESP: OFF", UDim2.new(0, 10, 0, 100), Color3.fromRGB(0, 170, 0))
+local nightVisionButton = createButton("Ночное видение: OFF", UDim2.new(0, 10, 0, 150), Color3.fromRGB(0, 170, 0))
+
+-- ==================== АИМБОТ ====================
+local function findNearestTarget()
+    local nearestTarget = nil
+    local nearestDistance = math.huge
+    
+    for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character then
+            local head = otherPlayer.Character:FindFirstChild("Head")
+            local humanoid = otherPlayer.Character:FindFirstChild("Humanoid")
+            
+            if head and humanoid and humanoid.Health > 0 then
+                local screenPos, onScreen = camera:WorldToScreenPoint(head.Position)
+                
+                if onScreen then
+                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)).Magnitude
+                    
+                    if distance < nearestDistance then
+                        nearestDistance = distance
+                        nearestTarget = head
+                    end
+                end
+            end
+        end
+    end
+    
+    return nearestTarget
+end
+
+-- ==================== ESP ====================
+local espHighlights = {}
+
+local function clearESP()
+    for _, highlight in pairs(espHighlights) do
+        if highlight then
+            highlight:Destroy()
+        end
+    end
+    espHighlights = {}
+end
+
+local function createESP()
+    clearESP()
+    
+    for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character then
+            local highlight = Instance.new("Highlight")
+            highlight.Parent = otherPlayer.Character
+            highlight.FillColor = Color3.new(1, 0, 0)
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.FillTransparency = 0.5
+            highlight.OutlineTransparency = 0
+            highlight.Enabled = true
+            
+            table.insert(espHighlights, highlight)
+            
+            -- Обновление при возрождении
+            otherPlayer.CharacterAdded:Connect(function(newCharacter)
+                if espEnabled then
+                    wait(0.5)
+                    local newHighlight = Instance.new("Highlight")
+                    newHighlight.Parent = newCharacter
+                    newHighlight.FillColor = Color3.new(1, 0, 0)
+                    newHighlight.OutlineColor = Color3.new(1, 1, 1)
+                    newHighlight.FillTransparency = 0.5
+                    newHighlight.OutlineTransparency = 0
+                    newHighlight.Enabled = true
+                    
+                    table.insert(espHighlights, newHighlight)
+                end
+            end)
+        end
+    end
+end
+
+-- ==================== НОЧНОЕ ВИДЕНИЕ ====================
+local function enableNightVision()
+    local lighting = game:GetService("Lighting")
+    
+    -- Сохраняем оригинальные настройки
+    local originalBrightness = lighting.Brightness
+    local originalClockTime = lighting.ClockTime
+    local originalAmbient = lighting.Ambient
+    local originalOutdoorAmbient = lighting.OutdoorAmbient
+    local originalFogColor = lighting.FogColor
+    local originalFogEnd = lighting.FogEnd
+    
+    -- Включаем ночное видение
+    lighting.Brightness = 2
+    lighting.ClockTime = 14
+    lighting.Ambient = Color3.fromRGB(150, 150, 150)
+    lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 150)
+    lighting.FogColor = Color3.fromRGB(100, 100, 100)
+    lighting.FogEnd = 100000
+    lighting.ExposureCompensation = 0.5
+    
+    return {
+        originalBrightness = originalBrightness,
+        originalClockTime = originalClockTime,
+        originalAmbient = originalAmbient,
+        originalOutdoorAmbient = originalOutdoorAmbient,
+        originalFogColor = originalFogColor,
+        originalFogEnd = originalFogEnd
+    }
+end
+
+local function disableNightVision(originalSettings)
+    local lighting = game:GetService("Lighting")
+    
+    lighting.Brightness = originalSettings.originalBrightness
+    lighting.ClockTime = originalSettings.originalClockTime
+    lighting.Ambient = originalSettings.originalAmbient
+    lighting.OutdoorAmbient = originalSettings.originalOutdoorAmbient
+    lighting.FogColor = originalSettings.originalFogColor
+    lighting.FogEnd = originalSettings.originalFogEnd
+    lighting.ExposureCompensation = 0
+end
+
+local originalLightingSettings = nil
+
+-- ==================== ОБРАБОТЧИКИ КНОПОК ====================
+
+-- Аимбот
+aimbotButton.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    
+    if aimbotEnabled then
+        aimbotButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        aimbotButton.Text = "Аимбот: ON"
+        
+        -- Запускаем аимбот
+        game:GetService("RunService").RenderStepped:Connect(function()
+            if aimbotEnabled then
+                local target = findNearestTarget()
+                if target then
+                    camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
+                end
+            end
+        end)
+    else
+        aimbotButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        aimbotButton.Text = "Аимбот: OFF"
+    end
+end)
+
+-- ESP
+espButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    
+    if espEnabled then
+        espButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        espButton.Text = "ESP: ON"
+        createESP()
+    else
+        espButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        espButton.Text = "ESP: OFF"
+        clearESP()
+    end
+end)
+
+-- Ночное видение
+nightVisionButton.MouseButton1Click:Connect(function()
+    nightVisionEnabled = not nightVisionEnabled
+    
+    if nightVisionEnabled then
+        nightVisionButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        nightVisionButton.Text = "Ночное видение: ON"
+        originalLightingSettings = enableNightVision()
+    else
+        nightVisionButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        nightVisionButton.Text = "Ночное видение: OFF"
+        
+        if originalLightingSettings then
+            disableNightVision(originalLightingSettings)
+            originalLightingSettings = nil
+        end
+    end
+end)
+
+-- Очистка при выходе
+game:GetService("Players").PlayerRemoving:Connect(function(leavingPlayer)
+    if leavingPlayer == player then
+        clearESP()
+        if nightVisionEnabled and originalLightingSettings then
+            disableNightVision(originalLightingSettings)
+        end
+    end
+end)
