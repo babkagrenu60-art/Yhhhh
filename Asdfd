@@ -1,0 +1,39 @@
+-- Fly Hack
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local flying = true
+local speed = 50
+
+local bodyGyro = Instance.new("BodyGyro")
+bodyGyro.P = 9e4
+bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+bodyGyro.CFrame = character.HumanoidRootPart.CFrame
+bodyGyro.Parent = character.HumanoidRootPart
+
+local bodyVelocity = Instance.new("BodyVelocity")
+bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+bodyVelocity.Parent = character.HumanoidRootPart
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if flying then
+        local direction = Vector3.new()
+        
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
+            direction = direction + workspace.CurrentCamera.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
+            direction = direction - workspace.CurrentCamera.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
+            direction = direction - workspace.CurrentCamera.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
+            direction = direction + workspace.CurrentCamera.CFrame.RightVector
+        end
+        
+        bodyVelocity.Velocity = direction * speed
+        bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+    end
+end)
