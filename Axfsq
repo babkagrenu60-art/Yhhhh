@@ -1,0 +1,275 @@
+-- Простая GUI библиотека
+local Library = {}
+
+function Library:CreateWindow(title)
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "DarknessFarmGUI"
+    ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.ResetOnSpawn = false
+    
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, 300, 0, 250)
+    MainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.ClipsDescendants = true
+    MainFrame.Parent = ScreenGui
+    
+    local MainCorner = Instance.new("UICorner")
+    MainCorner.CornerRadius = UDim.new(0, 10)
+    MainCorner.Parent = MainFrame
+    
+    -- Заголовок
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Name = "TitleBar"
+    TitleBar.Size = UDim2.new(1, 0, 0, 35)
+    TitleBar.Position = UDim2.new(0, 0, 0, 0)
+    TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    TitleBar.BorderSizePixel = 0
+    TitleBar.Parent = MainFrame
+    
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 10)
+    TitleCorner.Parent = TitleBar
+    
+    local TitleText = Instance.new("TextLabel")
+    TitleText.Size = UDim2.new(1, -50, 0, 35)
+    TitleText.Position = UDim2.new(0, 15, 0, 0)
+    TitleText.BackgroundTransparency = 1
+    TitleText.Text = title
+    TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleText.Font = Enum.Font.GothamBold
+    TitleText.TextSize = 18
+    TitleText.TextXAlignment = Enum.TextXAlignment.Left
+    TitleText.Parent = TitleBar
+    
+    -- Кнопка закрытия
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0, 30, 0, 30)
+    CloseButton.Position = UDim2.new(1, -35, 0, 2)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    CloseButton.Text = "X"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 16
+    CloseButton.BorderSizePixel = 0
+    CloseButton.Parent = TitleBar
+    
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 5)
+    CloseCorner.Parent = CloseButton
+    
+    -- Кнопка открытия (когда GUI закрыт)
+    local OpenButton = Instance.new("TextButton")
+    OpenButton.Size = UDim2.new(0, 50, 0, 50)
+    OpenButton.Position = UDim2.new(0, 10, 0.5, -25)
+    OpenButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    OpenButton.Text = "GUI"
+    OpenButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    OpenButton.Font = Enum.Font.GothamBold
+    OpenButton.TextSize = 14
+    OpenButton.BorderSizePixel = 0
+    OpenButton.Visible = false
+    OpenButton.Parent = ScreenGui
+    
+    local OpenCorner = Instance.new("UICorner")
+    OpenCorner.CornerRadius = UDim.new(0, 10)
+    OpenCorner.Parent = OpenButton
+    
+    -- Обработчики открытия/закрытия
+    CloseButton.MouseButton1Click:Connect(function()
+        MainFrame.Visible = false
+        OpenButton.Visible = true
+    end)
+    
+    OpenButton.MouseButton1Click:Connect(function()
+        MainFrame.Visible = true
+        OpenButton.Visible = false
+    end)
+    
+    -- Вкладки
+    local TabContainer = Instance.new("Frame")
+    TabContainer.Name = "TabContainer"
+    TabContainer.Size = UDim2.new(0, 80, 1, -35)
+    TabContainer.Position = UDim2.new(0, 0, 0, 35)
+    TabContainer.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    TabContainer.BorderSizePixel = 0
+    TabContainer.Parent = MainFrame
+    
+    local TabCorner = Instance.new("UICorner")
+    TabCorner.CornerRadius = UDim.new(0, 10)
+    TabCorner.Parent = TabContainer
+    
+    local ContentContainer = Instance.new("Frame")
+    ContentContainer.Name = "ContentContainer"
+    ContentContainer.Size = UDim2.new(1, -80, 1, -35)
+    ContentContainer.Position = UDim2.new(0, 80, 0, 35)
+    ContentContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    ContentContainer.BorderSizePixel = 0
+    ContentContainer.Parent = MainFrame
+    
+    local window = {}
+    
+    function window:CreateTab(tabName)
+        local TabButton = Instance.new("TextButton")
+        TabButton.Size = UDim2.new(1, 0, 0, 40)
+        TabButton.Position = UDim2.new(0, 0, 0, 10 + (#TabContainer:GetChildren() - 1) * 45)
+        TabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        TabButton.Text = tabName
+        TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TabButton.Font = Enum.Font.GothamBold
+        TabButton.TextSize = 14
+        TabButton.BorderSizePixel = 0
+        TabButton.Parent = TabContainer
+        
+        local TabBtnCorner = Instance.new("UICorner")
+        TabBtnCorner.CornerRadius = UDim.new(0, 5)
+        TabBtnCorner.Parent = TabButton
+        
+        local TabContent = Instance.new("Frame")
+        TabContent.Name = tabName .. "Content"
+        TabContent.Size = UDim2.new(1, 0, 1, 0)
+        TabContent.Position = UDim2.new(0, 0, 0, 0)
+        TabContent.BackgroundTransparency = 1
+        TabContent.Visible = false
+        TabContent.Parent = ContentContainer
+        
+        TabButton.MouseButton1Click:Connect(function()
+            for _, child in pairs(ContentContainer:GetChildren()) do
+                if child:IsA("Frame") then
+                    child.Visible = false
+                end
+            end
+            TabContent.Visible = true
+        end)
+        
+        local tab = {}
+        
+        function tab:CreateButton(buttonName, callback)
+            local Button = Instance.new("TextButton")
+            Button.Size = UDim2.new(1, -20, 0, 45)
+            Button.Position = UDim2.new(0, 10, 0, 10 + (#TabContent:GetChildren() - 1) * 55)
+            Button.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+            Button.Text = buttonName
+            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Button.Font = Enum.Font.GothamBold
+            Button.TextSize = 15
+            Button.BorderSizePixel = 0
+            Button.Parent = TabContent
+            
+            local BtnCorner = Instance.new("UICorner")
+            BtnCorner.CornerRadius = UDim.new(0, 8)
+            BtnCorner.Parent = Button
+            
+            if callback then
+                Button.MouseButton1Click:Connect(callback)
+            end
+            
+            return Button
+        end
+        
+        return tab
+    end
+    
+    return window
+end
+
+-- ============================================
+-- СОЗДАНИЕ GUI И АВТО ФАРМА
+-- ============================================
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local autoFarm = false
+
+-- Создаём окно
+local window = Library:CreateWindow("Darkness Farm")
+
+-- Создаём вкладку Farm
+local farmTab = window:CreateTab("Farm")
+
+-- Кнопка авто фарма
+local farmButton = farmTab:CreateButton("Авто Фарм: OFF", function()
+    autoFarm = not autoFarm
+    
+    if autoFarm then
+        farmButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        farmButton.Text = "Авто Фарм: ON"
+        -- Запускаем авто фарм
+        coroutine.wrap(startAutoFarm)()
+    else
+        farmButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        farmButton.Text = "Авто Фарм: OFF"
+    end
+end)
+
+-- Функция поиска DarknessPart
+local function findDarknessPart()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == "DarknessPart" and obj:IsA("BasePart") then
+            return obj
+        end
+    end
+    return nil
+end
+
+-- Функция телепортации
+local function teleportToDarknessPart()
+    local darknessPart = findDarknessPart()
+    
+    if darknessPart then
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            character.HumanoidRootPart.CFrame = darknessPart.CFrame + Vector3.new(0, 5, 0)
+            return true
+        end
+    else
+        print("DarknessPart не найден!")
+        return false
+    end
+    return false
+end
+
+-- Основная функция авто фарма
+function startAutoFarm()
+    while autoFarm do
+        -- Телепортируемся на DarknessPart
+        local success = teleportToDarknessPart()
+        
+        if not success then
+            -- Если не нашли DarknessPart или персонаж умер, ждём
+            wait(1)
+        else
+            -- Ждём смерти персонажа
+            if humanoid then
+                humanoid.Died:Wait()
+                -- Ждём возрождения
+                wait(0.5)
+                -- Обновляем ссылки на персонажа
+                character = player.Character
+                if character then
+                    humanoid = character:WaitForChild("Humanoid")
+                end
+            end
+        end
+        
+        wait(0.1) -- Небольшая задержка
+    end
+end
+
+-- Обновление ссылок при возрождении
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+    
+    -- Если авто фарм включен, продолжаем цикл
+    if autoFarm then
+        coroutine.wrap(startAutoFarm)()
+    end
+end)
+
+-- Активируем первую вкладку
+for _, child in pairs(workspace:GetChildren()) do
+    -- Пусто, просто для инициализации
+end
