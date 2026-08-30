@@ -1,0 +1,318 @@
+local player=game.Players.LocalPlayer
+local camera=workspace.CurrentCamera
+local aimbotEnabled=false
+local espEnabled=false
+local wallTriggerEnabled=false
+local aimPart="Head"
+
+-- Функция для создания работающей кнопки
+local function makeButton(parent, text, size, position, color)
+    local button=Instance.new("TextButton")
+    button.Size=size
+    button.Position=position
+    button.BackgroundColor3=color or Color3.fromRGB(0,170,0)
+    button.Text=text or ""
+    button.TextColor3=Color3.fromRGB(255,255,255)
+    button.Font=Enum.Font.GothamBold
+    button.TextSize=14
+    button.BorderSizePixel=0
+    button.AutoButtonColor=true
+    button.Parent=parent
+    
+    local corner=Instance.new("UICorner")
+    corner.CornerRadius=UDim.new(0,8)
+    corner.Parent=button
+    
+    return button
+end
+
+-- Создание GUI
+local screenGui=Instance.new("ScreenGui")
+screenGui.Name="MM2Hack"
+screenGui.Parent=player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn=false
+
+-- Главная рамка
+local mainFrame=Instance.new("Frame")
+mainFrame.Size=UDim2.new(0,280,0,400)
+mainFrame.Position=UDim2.new(0.5,-140,0.5,-200)
+mainFrame.BackgroundColor3=Color3.fromRGB(25,25,25)
+mainFrame.BorderSizePixel=0
+mainFrame.Active=true
+mainFrame.Draggable=true
+mainFrame.Parent=screenGui
+
+local mainCorner=Instance.new("UICorner")
+mainCorner.CornerRadius=UDim.new(0,10)
+mainCorner.Parent=mainFrame
+
+-- Заголовок
+local titleBar=Instance.new("Frame")
+titleBar.Size=UDim2.new(1,0,0,40)
+titleBar.Position=UDim2.new(0,0,0,0)
+titleBar.BackgroundColor3=Color3.fromRGB(35,35,35)
+titleBar.BorderSizePixel=0
+titleBar.Parent=mainFrame
+
+local titleText=Instance.new("TextLabel")
+titleText.Size=UDim2.new(1,-50,0,40)
+titleText.Position=UDim2.new(0,10,0,0)
+titleText.BackgroundTransparency=1
+titleText.Text="MM2 Hack"
+titleText.TextColor3=Color3.fromRGB(255,255,255)
+titleText.Font=Enum.Font.GothamBold
+titleText.TextSize=16
+titleText.TextXAlignment=Enum.TextXAlignment.Left
+titleText.Parent=titleBar
+
+-- Кнопка закрытия
+local closeButton=makeButton(titleBar,"X",UDim2.new(0,30,0,30),UDim2.new(1,-35,0,5),Color3.fromRGB(200,0,0))
+closeButton.TextSize=16
+
+-- Кнопка открытия
+local openButton=makeButton(screenGui,"GUI",UDim2.new(0,60,0,60),UDim2.new(0,10,0.5,-30),Color3.fromRGB(25,25,25))
+openButton.Visible=false
+
+-- Функции открытия/закрытия
+local function closeGUI()
+    mainFrame.Visible=false
+    openButton.Visible=true
+end
+
+local function openGUI()
+    mainFrame.Visible=true
+    openButton.Visible=false
+end
+
+closeButton.Activated:Connect(closeGUI)
+openButton.Activated:Connect(openGUI)
+
+-- Вкладки
+local tabBar=Instance.new("Frame")
+tabBar.Size=UDim2.new(1,0,0,40)
+tabBar.Position=UDim2.new(0,0,0,40)
+tabBar.BackgroundColor3=Color3.fromRGB(20,20,20)
+tabBar.BorderSizePixel=0
+tabBar.Parent=mainFrame
+
+local combatTabButton=makeButton(tabBar,"Combat",UDim2.new(0.5,-5,0,35),UDim2.new(0,5,0,2),Color3.fromRGB(35,35,35))
+local visualTabButton=makeButton(tabBar,"Visual",UDim2.new(0.5,-5,0,35),UDim2.new(0.5,0,0,2),Color3.fromRGB(35,35,35))
+
+-- Контент
+local contentArea=Instance.new("Frame")
+contentArea.Size=UDim2.new(1,0,1,-80)
+contentArea.Position=UDim2.new(0,0,0,80)
+contentArea.BackgroundColor3=Color3.fromRGB(30,30,30)
+contentArea.BorderSizePixel=0
+contentArea.Parent=mainFrame
+
+local combatContent=Instance.new("Frame")
+combatContent.Size=UDim2.new(1,0,1,0)
+combatContent.Position=UDim2.new(0,0,0,0)
+combatContent.BackgroundTransparency=1
+combatContent.Visible=true
+combatContent.Parent=contentArea
+
+local visualContent=Instance.new("Frame")
+visualContent.Size=UDim2.new(1,0,1,0)
+visualContent.Position=UDim2.new(0,0,0,0)
+visualContent.BackgroundTransparency=1
+visualContent.Visible=false
+visualContent.Parent=contentArea
+
+combatTabButton.Activated:Connect(function()
+    combatContent.Visible=true
+    visualContent.Visible=false
+end)
+
+visualTabButton.Activated:Connect(function()
+    combatContent.Visible=false
+    visualContent.Visible=true
+end)
+
+-- Кнопки Combat
+local aimbotButton=makeButton(combatContent,"Aimbot: OFF",UDim2.new(1,-20,0,45),UDim2.new(0,10,0,10))
+local wallTriggerButton=makeButton(combatContent,"Wall Trigger: OFF",UDim2.new(1,-20,0,45),UDim2.new(0,10,0,65))
+
+local aimLabel=Instance.new("TextLabel")
+aimLabel.Size=UDim2.new(1,-20,0,25)
+aimLabel.Position=UDim2.new(0,10,0,120)
+aimLabel.BackgroundTransparency=1
+aimLabel.Text="Цель аимбота:"
+aimLabel.TextColor3=Color3.fromRGB(255,255,255)
+aimLabel.Font=Enum.Font.GothamBold
+aimLabel.TextSize=13
+aimLabel.TextXAlignment=Enum.TextXAlignment.Left
+aimLabel.Parent=combatContent
+
+local headButton=makeButton(combatContent,"Голова",UDim2.new(0.33,-13,0,40),UDim2.new(0,10,0,155),Color3.fromRGB(255,150,0))
+local bodyButton=makeButton(combatContent,"Тело",UDim2.new(0.33,-13,0,40),UDim2.new(0.33,3,0,155))
+local legsButton=makeButton(combatContent,"Ноги",UDim2.new(0.33,-13,0,40),UDim2.new(0.66,-4,0,155))
+
+-- Кнопка Visual
+local espButton=makeButton(visualContent,"ESP: OFF",UDim2.new(1,-20,0,45),UDim2.new(0,10,0,10))
+
+-- Функции ESP
+local espHighlights={}
+local function getPlayerRole(targetPlayer)
+    local character=targetPlayer.Character
+    if not character then return"Innocent"end
+    local backpack=targetPlayer:FindFirstChild("Backpack")
+    if backpack then
+        if backpack:FindFirstChild("Knife")then return"Murderer"
+        elseif backpack:FindFirstChild("Gun")then return"Sheriff"end
+    end
+    if character:FindFirstChild("Knife")then return"Murderer"
+    elseif character:FindFirstChild("Gun")then return"Sheriff"end
+    return"Innocent"
+end
+local function clearESP()
+    for _,highlight in pairs(espHighlights)do
+        if highlight and highlight.Parent then highlight:Destroy()end
+    end
+    espHighlights={}
+end
+local function addESPToPlayer(targetPlayer)
+    if targetPlayer.Character then
+        local role=getPlayerRole(targetPlayer)
+        local highlight=Instance.new("Highlight")
+        highlight.Parent=targetPlayer.Character
+        if role=="Murderer"then
+            highlight.FillColor=Color3.fromRGB(255,0,0)
+        elseif role=="Sheriff"then
+            highlight.FillColor=Color3.fromRGB(0,0,255)
+        else
+            highlight.FillColor=Color3.fromRGB(0,255,0)
+        end
+        highlight.FillTransparency=0.4
+        table.insert(espHighlights,highlight)
+    end
+end
+local function createESP()
+    clearESP()
+    for _,otherPlayer in pairs(game.Players:GetPlayers())do
+        if otherPlayer~=player then
+            addESPToPlayer(otherPlayer)
+            otherPlayer.CharacterAdded:Connect(function()
+                if espEnabled then wait(0.5)addESPToPlayer(otherPlayer)end
+            end)
+        end
+    end
+end
+
+-- Функции аимбота
+local aimbotConnection=nil
+local function isTargetVisible(targetPart)
+    local character=player.Character
+    if not character then return false end
+    local rootPart=character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return false end
+    local raycastParams=RaycastParams.new()
+    raycastParams.FilterType=Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances={character}
+    local rayDirection=(targetPart.Position-rootPart.Position).Unit
+    local rayDistance=(targetPart.Position-rootPart.Position).Magnitude
+    local raycastResult=workspace:Raycast(rootPart.Position,rayDirection*rayDistance,raycastParams)
+    if raycastResult then
+        if raycastResult.Instance:IsDescendantOf(targetPart.Parent)then return true else return false end
+    end
+    return true
+end
+local function getAimPart(character)
+    if aimPart=="Head"then return character:FindFirstChild("Head")
+    elseif aimPart=="HumanoidRootPart"then return character:FindFirstChild("HumanoidRootPart")
+    elseif aimPart=="LeftLeg"then return character:FindFirstChild("LeftLeg")or character:FindFirstChild("Left Leg")end
+    return character:FindFirstChild("Head")
+end
+local function startAimbot()
+    aimbotConnection=game:GetService("RunService").RenderStepped:Connect(function()
+        if aimbotEnabled then
+            local nearestTarget=nil
+            local nearestDistance=500
+            for _,otherPlayer in pairs(game.Players:GetPlayers())do
+                if otherPlayer~=player and otherPlayer.Character then
+                    local targetPart=getAimPart(otherPlayer.Character)
+                    local humanoid=otherPlayer.Character:FindFirstChild("Humanoid")
+                    if targetPart and humanoid and humanoid.Health>0 then
+                        if wallTriggerEnabled and not isTargetVisible(targetPart)then
+                        else
+                            local screenPos,onScreen=camera:WorldToScreenPoint(targetPart.Position)
+                            if onScreen then
+                                local screenCenter=Vector2.new(camera.ViewportSize.X/2,camera.ViewportSize.Y/2)
+                                local distance=(Vector2.new(screenPos.X,screenPos.Y)-screenCenter).Magnitude
+                                if distance<nearestDistance then
+                                    nearestDistance=distance
+                                    nearestTarget=targetPart
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            if nearestTarget then camera.CFrame=CFrame.new(camera.CFrame.Position,nearestTarget.Position)end
+        end
+    end)
+end
+
+-- Обработчики кнопок (используем Activated)
+aimbotButton.Activated:Connect(function()
+    aimbotEnabled=not aimbotEnabled
+    if aimbotEnabled then
+        aimbotButton.BackgroundColor3=Color3.fromRGB(255,0,0)
+        aimbotButton.Text="Aimbot: ON"
+        startAimbot()
+    else
+        aimbotButton.BackgroundColor3=Color3.fromRGB(0,170,0)
+        aimbotButton.Text="Aimbot: OFF"
+        if aimbotConnection then aimbotConnection:Disconnect()aimbotConnection=nil end
+    end
+end)
+
+wallTriggerButton.Activated:Connect(function()
+    wallTriggerEnabled=not wallTriggerEnabled
+    if wallTriggerEnabled then
+        wallTriggerButton.BackgroundColor3=Color3.fromRGB(255,0,0)
+        wallTriggerButton.Text="Wall Trigger: ON"
+    else
+        wallTriggerButton.BackgroundColor3=Color3.fromRGB(0,170,0)
+        wallTriggerButton.Text="Wall Trigger: OFF"
+    end
+end)
+
+headButton.Activated:Connect(function()
+    aimPart="Head"
+    headButton.BackgroundColor3=Color3.fromRGB(255,150,0)
+    bodyButton.BackgroundColor3=Color3.fromRGB(0,170,0)
+    legsButton.BackgroundColor3=Color3.fromRGB(0,170,0)
+end)
+
+bodyButton.Activated:Connect(function()
+    aimPart="HumanoidRootPart"
+    bodyButton.BackgroundColor3=Color3.fromRGB(255,150,0)
+    headButton.BackgroundColor3=Color3.fromRGB(0,170,0)
+    legsButton.BackgroundColor3=Color3.fromRGB(0,170,0)
+end)
+
+legsButton.Activated:Connect(function()
+    aimPart="LeftLeg"
+    legsButton.BackgroundColor3=Color3.fromRGB(255,150,0)
+    headButton.BackgroundColor3=Color3.fromRGB(0,170,0)
+    bodyButton.BackgroundColor3=Color3.fromRGB(0,170,0)
+end)
+
+espButton.Activated:Connect(function()
+    espEnabled=not espEnabled
+    if espEnabled then
+        espButton.BackgroundColor3=Color3.fromRGB(255,0,0)
+        espButton.Text="ESP: ON"
+        createESP()
+    else
+        espButton.BackgroundColor3=Color3.fromRGB(0,170,0)
+        espButton.Text="ESP: OFF"
+        clearESP()
+    end
+end)
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    if espEnabled then wait(2)if espEnabled then createESP()end end
+end)
