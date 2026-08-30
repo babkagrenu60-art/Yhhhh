@@ -1,0 +1,260 @@
+-- Fly GUI для телефона с кнопками управления
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Переменные
+local flying = false
+local speed = 50
+local bodyGyro = nil
+local bodyVelocity = nil
+local moveDirection = Vector3.new(0, 0, 0)
+
+-- Создание GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+
+-- Главная рамка
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 250, 0, 350)
+mainFrame.Position = UDim2.new(0.5, -125, 0.5, -175)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = mainFrame
+
+-- Заголовок
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -30, 0, 30)
+title.Position = UDim2.new(0, 15, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "Fly Menu"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = mainFrame
+
+-- Кнопка закрытия (X)
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 16
+closeButton.BorderSizePixel = 0
+closeButton.Parent = mainFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 5)
+closeCorner.Parent = closeButton
+
+-- Кнопка Fly
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.new(1, -30, 0, 40)
+flyButton.Position = UDim2.new(0, 15, 0, 45)
+flyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+flyButton.Text = "FLY: OFF"
+flyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyButton.Font = Enum.Font.GothamBold
+flyButton.TextSize = 18
+flyButton.BorderSizePixel = 0
+flyButton.Parent = mainFrame
+
+local flyCorner = Instance.new("UICorner")
+flyCorner.CornerRadius = UDim.new(0, 8)
+flyCorner.Parent = flyButton
+
+-- Функция создания кнопок управления
+local function createControlButton(text, position, color)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 60, 0, 60)
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 24
+    button.BorderSizePixel = 0
+    button.Visible = false
+    button.Parent = mainFrame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 10)
+    btnCorner.Parent = button
+    
+    return button
+end
+
+-- Кнопки управления
+local upButton = createControlButton("↑", UDim2.new(0.5, -30, 0, 100), Color3.fromRGB(50, 50, 50))
+local downButton = createControlButton("↓", UDim2.new(0.5, -30, 0, 230), Color3.fromRGB(50, 50, 50))
+local leftButton = createControlButton("←", UDim2.new(0.5, -95, 0, 165), Color3.fromRGB(50, 50, 50))
+local rightButton = createControlButton("→", UDim2.new(0.5, 35, 0, 165), Color3.fromRGB(50, 50, 50))
+local forwardButton = createControlButton("▲", UDim2.new(0.15, 0, 0, 165), Color3.fromRGB(0, 100, 255))
+local backwardButton = createControlButton("▼", UDim2.new(0.7, 0, 0, 165), Color3.fromRGB(0, 100, 255))
+
+-- Кнопка открытия (когда панель закрыта)
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 60, 0, 60)
+openButton.Position = UDim2.new(0, 10, 0.5, -30)
+openButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+openButton.Text = "FLY"
+openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+openButton.Font = Enum.Font.GothamBold
+openButton.TextSize = 14
+openButton.BorderSizePixel = 0
+openButton.Visible = false
+openButton.Parent = screenGui
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(0, 15)
+openCorner.Parent = openButton
+
+-- Функция включения/выключения полёта
+local function toggleFly()
+    flying = not flying
+    
+    if flying then
+        -- Включение полёта
+        flyButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        flyButton.Text = "FLY: ON"
+        
+        -- Показать кнопки управления
+        upButton.Visible = true
+        downButton.Visible = true
+        leftButton.Visible = true
+        rightButton.Visible = true
+        forwardButton.Visible = true
+        backwardButton.Visible = true
+        
+        -- Увеличить размер панели
+        mainFrame.Size = UDim2.new(0, 250, 0, 350)
+        
+        bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.P = 9e4
+        bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bodyGyro.CFrame = character.HumanoidRootPart.CFrame
+        bodyGyro.Parent = character.HumanoidRootPart
+        
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bodyVelocity.Parent = character.HumanoidRootPart
+        
+        humanoid.PlatformStand = true
+    else
+        -- Выключение полёта
+        flyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        flyButton.Text = "FLY: OFF"
+        
+        -- Скрыть кнопки управления
+        upButton.Visible = false
+        downButton.Visible = false
+        leftButton.Visible = false
+        rightButton.Visible = false
+        forwardButton.Visible = false
+        backwardButton.Visible = false
+        
+        -- Уменьшить размер панели
+        mainFrame.Size = UDim2.new(0, 250, 0, 100)
+        
+        if bodyGyro then
+            bodyGyro:Destroy()
+            bodyGyro = nil
+        end
+        
+        if bodyVelocity then
+            bodyVelocity:Destroy()
+            bodyVelocity = nil
+        end
+        
+        humanoid.PlatformStand = false
+        moveDirection = Vector3.new(0, 0, 0)
+    end
+end
+
+-- Управление кнопками
+local function handleButtonPress(button, direction)
+    local isPressed = false
+    
+    button.MouseButton1Down:Connect(function()
+        isPressed = true
+        moveDirection = moveDirection + direction
+    end)
+    
+    button.MouseButton1Up:Connect(function()
+        isPressed = false
+        moveDirection = moveDirection - direction
+    end)
+    
+    button.MouseLeave:Connect(function()
+        if isPressed then
+            isPressed = false
+            moveDirection = moveDirection - direction
+        end
+    end)
+end
+
+-- Назначение кнопок
+handleButtonPress(upButton, Vector3.new(0, 1, 0))
+handleButtonPress(downButton, Vector3.new(0, -1, 0))
+handleButtonPress(leftButton, Vector3.new(-1, 0, 0))
+handleButtonPress(rightButton, Vector3.new(1, 0, 0))
+handleButtonPress(forwardButton, Vector3.new(0, 0, -1))
+handleButtonPress(backwardButton, Vector3.new(0, 0, 1))
+
+-- Обновление движения
+game:GetService("RunService").RenderStepped:Connect(function()
+    if flying and bodyVelocity and bodyGyro then
+        local direction = Vector3.new()
+        local camera = workspace.CurrentCamera
+        
+        if moveDirection.X ~= 0 then
+            direction = direction + camera.CFrame.RightVector * moveDirection.X
+        end
+        if moveDirection.Z ~= 0 then
+            direction = direction - camera.CFrame.LookVector * moveDirection.Z
+        end
+        direction = direction + Vector3.new(0, moveDirection.Y, 0)
+        
+        bodyVelocity.Velocity = direction * speed
+        bodyGyro.CFrame = camera.CFrame
+    end
+end)
+
+-- Кнопки
+flyButton.MouseButton1Click:Connect(toggleFly)
+closeButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    openButton.Visible = true
+end)
+
+openButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    openButton.Visible = false
+end)
+
+-- Если персонаж возрождается
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+    flying = false
+    flyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+    flyButton.Text = "FLY: OFF"
+    upButton.Visible = false
+    downButton.Visible = false
+    leftButton.Visible = false
+    rightButton.Visible = false
+    forwardButton.Visible = false
+    backwardButton.Visible = false
+    mainFrame.Size = UDim2.new(0, 250, 0, 100)
+end)
