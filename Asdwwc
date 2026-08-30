@@ -1,0 +1,105 @@
+-- Авто фарм монет с телепортацией на DarknessPart
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local autoFarm = false
+
+-- Создание GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+
+-- Кнопка авто фарма
+local farmButton = Instance.new("TextButton")
+farmButton.Size = UDim2.new(0, 150, 0, 60)
+farmButton.Position = UDim2.new(0, 10, 0.5, -30)
+farmButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+farmButton.Text = "АВТО ФАРМ: OFF"
+farmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+farmButton.Font = Enum.Font.GothamBold
+farmButton.TextSize = 14
+farmButton.BorderSizePixel = 0
+farmButton.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = farmButton
+
+-- Функция поиска DarknessPart
+local function findDarknessPart()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == "DarknessPart" and obj:IsA("BasePart") then
+            return obj
+        end
+    end
+    return nil
+end
+
+-- Функция телепортации
+local function teleportToDarknessPart()
+    local darknessPart = findDarknessPart()
+    
+    if darknessPart then
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            character.HumanoidRootPart.CFrame = darknessPart.CFrame + Vector3.new(0, 5, 0)
+            return true
+        end
+    else
+        print("DarknessPart не найден!")
+        return false
+    end
+    return false
+end
+
+-- Основная функция авто фарма
+local function startAutoFarm()
+    while autoFarm do
+        -- Телепортируемся на DarknessPart
+        local success = teleportToDarknessPart()
+        
+        if not success then
+            -- Если не нашли DarknessPart или персонаж умер, ждём
+            wait(1)
+        else
+            -- Ждём смерти персонажа
+            if humanoid then
+                humanoid.Died:Wait()
+                -- Ждём возрождения
+                wait(0.5)
+                -- Обновляем ссылки на персонажа
+                character = player.Character
+                if character then
+                    humanoid = character:WaitForChild("Humanoid")
+                end
+            end
+        end
+        
+        wait(0.1) -- Небольшая задержка
+    end
+end
+
+-- Обработчик кнопки
+farmButton.MouseButton1Click:Connect(function()
+    autoFarm = not autoFarm
+    
+    if autoFarm then
+        farmButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        farmButton.Text = "АВТО ФАРМ: ON"
+        -- Запускаем в отдельном потоке
+        coroutine.wrap(startAutoFarm)()
+    else
+        farmButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        farmButton.Text = "АВТО ФАРМ: OFF"
+    end
+end)
+
+-- Обновление ссылок при возрождении
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+    
+    -- Если авто фарм включен, продолжаем цикл
+    if autoFarm then
+        coroutine.wrap(startAutoFarm)()
+    end
+end)
