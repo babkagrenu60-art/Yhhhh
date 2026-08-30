@@ -1,0 +1,196 @@
+-- Исправленная GUI библиотека для мобильных устройств
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local autoFarm = false
+
+-- Создание ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DarknessFarmGUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Главная рамка
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 280, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -100)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.Parent = mainFrame
+
+-- Заголовок
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.Position = UDim2.new(0, 0, 0, 0)
+titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = titleBar
+
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(1, -80, 0, 40)
+titleText.Position = UDim2.new(0, 10, 0, 0)
+titleText.BackgroundTransparency = 1
+titleText.Text = "Darkness Farm"
+titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleText.Font = Enum.Font.GothamBold
+titleText.TextSize = 16
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Parent = titleBar
+
+-- Кнопка закрытия (отдельно)
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 35, 0, 35)
+closeButton.Position = UDim2.new(1, -40, 0, 2)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+closeButton.Text = "✕"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 18
+closeButton.BorderSizePixel = 0
+closeButton.ZIndex = 10
+closeButton.Parent = titleBar
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 5)
+closeCorner.Parent = closeButton
+
+-- Вкладка Farm
+local farmTab = Instance.new("TextButton")
+farmTab.Size = UDim2.new(1, -20, 0, 35)
+farmTab.Position = UDim2.new(0, 10, 0, 50)
+farmTab.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+farmTab.Text = "Farm"
+farmTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+farmTab.Font = Enum.Font.GothamBold
+farmTab.TextSize = 14
+farmTab.BorderSizePixel = 0
+farmTab.Parent = mainFrame
+
+local tabCorner = Instance.new("UICorner")
+tabCorner.CornerRadius = UDim.new(0, 5)
+tabCorner.Parent = farmTab
+
+-- Кнопка авто фарма
+local farmButton = Instance.new("TextButton")
+farmButton.Size = UDim2.new(1, -20, 0, 45)
+farmButton.Position = UDim2.new(0, 10, 0, 95)
+farmButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+farmButton.Text = "Авто Фарм: OFF"
+farmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+farmButton.Font = Enum.Font.GothamBold
+farmButton.TextSize = 15
+farmButton.BorderSizePixel = 0
+farmButton.Parent = mainFrame
+
+local farmCorner = Instance.new("UICorner")
+farmCorner.CornerRadius = UDim.new(0, 8)
+farmCorner.Parent = farmButton
+
+-- Кнопка открытия (когда GUI закрыт)
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 60, 0, 60)
+openButton.Position = UDim2.new(0, 10, 0.5, -30)
+openButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+openButton.Text = "GUI"
+openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+openButton.Font = Enum.Font.GothamBold
+openButton.TextSize = 14
+openButton.BorderSizePixel = 0
+openButton.Visible = false
+openButton.ZIndex = 10
+openButton.Parent = screenGui
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(0, 10)
+openCorner.Parent = openButton
+
+-- Обработчики закрытия/открытия
+closeButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    openButton.Visible = true
+end)
+
+openButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    openButton.Visible = false
+end)
+
+-- Функция поиска DarknessPart
+local function findDarknessPart()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == "DarknessPart" and obj:IsA("BasePart") then
+            return obj
+        end
+    end
+    return nil
+end
+
+-- Функция телепортации
+local function teleportToDarknessPart()
+    local darknessPart = findDarknessPart()
+    
+    if darknessPart then
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            character.HumanoidRootPart.CFrame = darknessPart.CFrame + Vector3.new(0, 5, 0)
+            return true
+        end
+    end
+    return false
+end
+
+-- Основная функция авто фарма
+local function startAutoFarm()
+    while autoFarm do
+        local success = teleportToDarknessPart()
+        
+        if not success then
+            wait(1)
+        else
+            if humanoid then
+                humanoid.Died:Wait()
+                wait(0.5)
+                character = player.Character
+                if character then
+                    humanoid = character:WaitForChild("Humanoid")
+                end
+            end
+        end
+        
+        wait(0.1)
+    end
+end
+
+-- Обработчик кнопки фарма
+farmButton.MouseButton1Click:Connect(function()
+    autoFarm = not autoFarm
+    
+    if autoFarm then
+        farmButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        farmButton.Text = "Авто Фарм: ON"
+        coroutine.wrap(startAutoFarm)()
+    else
+        farmButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        farmButton.Text = "Авто Фарм: OFF"
+    end
+end)
+
+-- Обновление ссылок при возрождении
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+    
+    if autoFarm then
+        coroutine.wrap(startAutoFarm)()
+    end
+end)
