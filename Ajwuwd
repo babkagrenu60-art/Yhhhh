@@ -1,0 +1,294 @@
+-- Строгий монохромный скрипт без RGB и цветных кнопок по твоему рисунку
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- ПЕРЕМЕННЫЕ НАСТРОЕК
+local AimActive = false
+local EspActive = false
+local AimTargetPart = "Head" 
+local ToggleKey = Enum.KeyCode.Insert 
+
+-- ==========================================
+-- 1. СТРОГИЙ МОНОХРОМНЫЙ GUI ПО РИСУНКУ
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "StrictCustomMenu"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Главная панель (Темно-серый минимализм)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 260, 0, 280)
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -140)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true 
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = MainFrame
+
+-- Верхняя панель заголовка
+local HeaderFrame = Instance.new("Frame")
+HeaderFrame.Size = UDim2.new(1, 0, 0, 40)
+HeaderFrame.BackgroundTransparency = 1
+HeaderFrame.Parent = MainFrame
+
+-- Кнопка закрытия [X] (Стильный черный/серый куб)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(0, 10, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 13
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = HeaderFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 4)
+CloseCorner.Parent = CloseButton
+
+-- Название меню
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -60, 1, 0)
+Title.Position = UDim2.new(0, 50, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "GUI MENU"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 14
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = HeaderFrame
+
+-- Линия-разделитель
+local Devider = Instance.new("Frame")
+Devider.Size = UDim2.new(1, -20, 0, 1)
+Devider.Position = UDim2.new(0, 10, 0, 42)
+Devider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Devider.BorderSizePixel = 0
+Devider.Parent = MainFrame
+
+-- Строка управления AIMBOT
+local AimLabel = Instance.new("TextLabel")
+AimLabel.Size = UDim2.new(0, 100, 0, 40)
+AimLabel.Position = UDim2.new(0, 20, 0, 55)
+AimLabel.BackgroundTransparency = 1
+AimLabel.Text = "AIMBOT"
+AimLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+AimLabel.TextSize = 14
+AimLabel.Font = Enum.Font.GothamSemibold
+AimLabel.TextXAlignment = Enum.TextXAlignment.Left
+AimLabel.Parent = MainFrame
+
+local AimToggleBtn = Instance.new("TextButton")
+AimToggleBtn.Size = UDim2.new(0, 100, 0, 35)
+AimToggleBtn.Position = UDim2.new(1, -120, 0, 57)
+AimToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+AimToggleBtn.Text = "ВЫКЛ"
+AimToggleBtn.TextColor3 = Color3.fromRGB(130, 130, 130)
+AimToggleBtn.TextSize = 13
+AimToggleBtn.Font = Enum.Font.GothamBold
+AimToggleBtn.Parent = MainFrame
+
+local AimToggleCorner = Instance.new("UICorner")
+AimToggleCorner.CornerRadius = UDim.new(0, 4)
+AimToggleCorner.Parent = AimToggleBtn
+
+-- Строка выбора части тела (Aim Target)
+local TargetLabel = Instance.new("TextLabel")
+TargetLabel.Size = UDim2.new(0, 100, 0, 40)
+TargetLabel.Position = UDim2.new(0, 20, 0, 110)
+TargetLabel.BackgroundTransparency = 1
+TargetLabel.Text = "AIM TARGET"
+TargetLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+TargetLabel.TextSize = 14
+TargetLabel.Font = Enum.Font.GothamSemibold
+TargetLabel.TextXAlignment = Enum.TextXAlignment.Left
+TargetLabel.Parent = MainFrame
+
+-- Кнопка HEAD
+local HeadBtn = Instance.new("TextButton")
+HeadBtn.Size = UDim2.new(0, 48, 0, 35)
+HeadBtn.Position = UDim2.new(1, -120, 0, 112)
+HeadBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70) -- Изначально активна (светлее)
+HeadBtn.Text = "HEAD"
+HeadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+HeadBtn.TextSize = 11
+HeadBtn.Font = Enum.Font.GothamBold
+HeadBtn.Parent = MainFrame
+
+local HeadCorner = Instance.new("UICorner")
+HeadCorner.CornerRadius = UDim.new(0, 4)
+HeadCorner.Parent = HeadBtn
+
+-- Кнопка TORSO
+local TorsoBtn = Instance.new("TextButton")
+TorsoBtn.Size = UDim2.new(0, 48, 0, 35)
+TorsoBtn.Position = UDim2.new(1, -68, 0, 112)
+TorsoBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+TorsoBtn.Text = "TORSO"
+TorsoBtn.TextColor3 = Color3.fromRGB(130, 130, 130)
+TorsoBtn.TextSize = 11
+TorsoBtn.Font = Enum.Font.GothamBold
+TorsoBtn.Parent = MainFrame
+
+local TorsoCorner = Instance.new("UICorner")
+TorsoCorner.CornerRadius = UDim.new(0, 4)
+TorsoCorner.Parent = TorsoBtn
+
+-- Строка управления ESP
+local EspLabel = Instance.new("TextLabel")
+EspLabel.Size = UDim2.new(0, 100, 0, 40)
+EspLabel.Position = UDim2.new(0, 20, 0, 165)
+EspLabel.BackgroundTransparency = 1
+EspLabel.Text = "ESP (ВХ)"
+EspLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+EspLabel.TextSize = 14
+EspLabel.Font = Enum.Font.GothamSemibold
+EspLabel.TextXAlignment = Enum.TextXAlignment.Left
+EspLabel.Parent = MainFrame
+
+local EspToggleBtn = Instance.new("TextButton")
+EspToggleBtn.Size = UDim2.new(0, 100, 0, 35)
+EspToggleBtn.Position = UDim2.new(1, -120, 0, 167)
+EspToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+EspToggleBtn.Text = "ВЫКЛ"
+EspToggleBtn.TextColor3 = Color3.fromRGB(130, 130, 130)
+EspToggleBtn.TextSize = 13
+EspToggleBtn.Font = Enum.Font.GothamBold
+EspToggleBtn.Parent = MainFrame
+
+local EspToggleCorner = Instance.new("UICorner")
+EspToggleCorner.CornerRadius = UDim.new(0, 4)
+EspToggleCorner.Parent = EspToggleBtn
+
+-- Отдельная кнопка открытия меню
+local OpenMenuBtn = Instance.new("TextButton")
+OpenMenuBtn.Name = "OpenMenuBtn"
+OpenMenuBtn.Size = UDim2.new(0, 110, 0, 40)
+OpenMenuBtn.Position = UDim2.new(0, 15, 0, 15)
+OpenMenuBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+OpenMenuBtn.Text = "ОТКРЫТЬ МЕНЮ"
+OpenMenuBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenMenuBtn.TextSize = 11
+OpenMenuBtn.Font = Enum.Font.GothamBold
+OpenMenuBtn.Visible = false 
+OpenMenuBtn.Parent = ScreenGui
+
+local OpenCorner = Instance.new("UICorner")
+OpenCorner.CornerRadius = UDim.new(0, 6)
+OpenCorner.Parent = OpenMenuBtn
+
+
+-- ==========================================
+-- 2. СТРОГАЯ ЛОГИКА ИНТЕРФЕЙСА
+-- ==========================================
+local function ShowMenu()
+	MainFrame.Visible = true
+	OpenMenuBtn.Visible = false
+end
+
+local function HideMenu()
+	MainFrame.Visible = false
+	OpenMenuBtn.Visible = true
+end
+
+CloseButton.MouseButton1Click:Connect(HideMenu)
+OpenMenuBtn.MouseButton1Click:Connect(ShowMenu)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not gameProcessed and input.KeyCode == ToggleKey then
+		if MainFrame.Visible then HideMenu() else ShowMenu() end
+	end
+end)
+
+
+-- ==========================================
+-- 3. ПЕРЕКЛЮЧЕНИЕ ЦЕЛЕЙ (БЕЗ ЦВЕТА)
+-- ==========================================
+HeadBtn.MouseButton1Click:Connect(function()
+	AimTargetPart = "Head"
+	HeadBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	HeadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	
+	TorsoBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	TorsoBtn.TextColor3 = Color3.fromRGB(130, 130, 130)
+end)
+
+TorsoBtn.MouseButton1Click:Connect(function()
+	AimTargetPart = "HumanoidRootPart"
+	TorsoBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	TorsoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	
+	HeadBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	HeadBtn.TextColor3 = Color3.fromRGB(130, 130, 130)
+end)
+
+
+-- ==========================================
+-- 4. РАБОТА AIMBOT
+-- ==========================================
+local function GetClosestPlayer()
+	local closestPlayer = nil
+	local shortestDistance = math.huge
+
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+			local pos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
+			if onScreen then
+				local mousePos = UserInputService:GetMouseLocation()
+				local distance = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+				if distance < shortestDistance then
+					closestPlayer = player
+					shortestDistance = distance
+				end
+			end
+		end
+	end
+	return closestPlayer
+end
+
+RunService.RenderStepped:Connect(function()
+	if AimActive then
+		local target = GetClosestPlayer()
+		if target and target.Character and target.Character:FindFirstChild(AimTargetPart) then
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character[AimTargetPart].Position)
+		end
+	end
+end)
+
+AimToggleBtn.MouseButton1Click:Connect(function()
+	AimActive = not AimActive
+	if AimActive then
+		AimToggleBtn.Text = "ВКЛ"
+		AimToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		AimToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	else
+		AimToggleBtn.Text = "ВЫКЛ"
+		AimToggleBtn.TextColor3 = Color3.fromRGB(130, 130, 130)
+		AimToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	end
+end)
+
+
+-- ==========================================
+-- 5. РАБОТА ESP (БЕЛАЯ ПОДСВЕТКА)
+-- ==========================================
+local function ApplyEsp(player)
+	if player == LocalPlayer then return end
+	
+	local function addHighlight(character)
+		if not character:FindFirstChild("ESPHighlight") then
+			local highlight = Instance.new("Highlight")
+			highlight.Name = "ESPHighlight"
+			highlight.FillOriginalProperties = false
+			highlight.FillColor = Color3.fromRGB(100, 100, 100) -- Серый силуэт
+			highlight.FillTransparency = 0.7
