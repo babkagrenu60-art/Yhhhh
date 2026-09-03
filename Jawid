@@ -1,0 +1,104 @@
+-- МИНИМИЗИРОВАННЫЙ ИСПРАВЛЕННЫЙ СКРИПТ ДЛЯ DELTA (MM2)
+local P, R, U = game:GetService("Players"), game:GetService("RunService"), game:GetService("UserInputService")
+local LP, Cam = P.LocalPlayer, workspace.CurrentCamera
+local EAll, EGun, SInf, NClp, WHop = false, false, false, false, false
+
+-- СОЗДАНИЕ СТРОГОГО ИЗОГНУТОГО ИНТЕРФЕЙСА ПО РИСУНКУ
+local SG = Instance.new("ScreenGui"); SG.Name = "DeltaMM2"; SG.ResetOnSpawn = false; SG.Parent = LP:WaitForChild("PlayerGui")
+local MF = Instance.new("Frame"); MF.Size = UDim2.new(0, 360, 0, 240); MF.Position = UDim2.new(0.5, -180, 0.5, -120); MF.BackgroundColor3 = Color3.fromRGB(20, 20, 20); MF.BorderSizePixel = 0; MF.Active = true; MF.Draggable = true; MF.Rotation = -1; MF.Parent = SG
+local MS = Instance.new("UIStroke"); MS.Color = Color3.fromRGB(45, 45, 45); MS.Thickness = 2; MS.Parent = MF
+
+-- Левая панель с твоей подписью
+local LT = Instance.new("Frame"); LT.Size = UDim2.new(0, 100, 1, 0); LT.BackgroundColor3 = Color3.fromRGB(15, 15, 15); LT.BorderSizePixel = 0; LT.Parent = MF
+local Cr = Instance.new("TextLabel"); Cr.Size = UDim2.new(1, 0, 0, 30); Cr.Position = UDim2.new(0, 0, 1, -30); Cr.BackgroundTransparency = 1; Cr.Text = "ИГРЫ от cregoo"; Cr.TextColor3 = Color3.fromRGB(80, 80, 80); Cr.TextSize = 9; Cr.Font = Enum.Font.Code; Cr.Parent = LT
+
+local CE, CP, CL = Instance.new("Frame"), Instance.new("Frame"), Instance.new("Frame")
+for _, v in pairs({CE, CP, CL}) do v.Size = UDim2.new(1, -100, 1, 0); v.Position = UDim2.new(0, 100, 0, 0); v.BackgroundTransparency = 1; v.Parent = MF end
+CP.Visible, CL.Visible = false, false
+
+local function cTab(name, pos, frame)
+	local b = Instance.new("TextButton"); b.Size = UDim2.new(1, 0, 0, 50); b.Position = pos; b.BackgroundColor3 = Color3.fromRGB(20, 20, 20); b.Text = name; b.TextColor3 = Color3.fromRGB(150, 150, 150); b.Font = Enum.Font.GothamBold; b.TextSize = 13; b.Parent = LT
+	b.MouseButton1Click:Connect(function()
+		CE.Visible, CP.Visible, CL.Visible = false, false, false; frame.Visible = true
+		for _, x in pairs(LT:GetChildren()) do if x:IsA("TextButton") then x.BackgroundColor3 = Color3.fromRGB(20, 20, 20); x.TextColor3 = Color3.fromRGB(150, 150, 150) end end
+		b.BackgroundColor3 = Color3.fromRGB(30, 30, 30); b.TextColor3 = Color3.fromRGB(255, 255, 255)
+	end); return b
+end
+local tE = cTab("ЕСП", UDim2.new(0,0,0,0), CE); tE.BackgroundColor3 = Color3.fromRGB(30, 30, 30); tE.TextColor3 = Color3.fromRGB(255, 255, 255)
+cTab("ПВП", UDim2.new(0,0,0,50), CP); cTab("ИГРОК", UDim2.new(0,0,0,100), CL)
+
+local function cTgl(txt, pos, parent, cb)
+	local l = Instance.new("TextLabel"); l.Size = UDim2.new(0, 150, 0, 40); l.Position = pos; l.BackgroundTransparency = 1; l.Text = txt; l.TextColor3 = Color3.fromRGB(200, 200, 200); l.Font = Enum.Font.GothamSemibold; l.TextSize = 11; l.TextXAlignment = Enum.TextXAlignment.Left; l.Parent = parent
+	local b = Instance.new("TextButton"); b.Size = UDim2.new(0, 65, 0, 26); b.Position = UDim2.new(1, -80, pos.Y.Scale, pos.Y.Offset + 7); b.BackgroundColor3 = Color3.fromRGB(35, 35, 35); b.Text = "ВЫКЛ"; b.TextColor3 = Color3.fromRGB(130, 130, 130); b.Font = Enum.Font.GothamBold; b.TextSize = 10; b.Parent = parent
+	local s = false; b.MouseButton1Click:Connect(function() s = not s; b.Text = s and "ВКЛ" or "ВЫКЛ"; b.TextColor3 = s and Color3.fromRGB(255,255,255) or Color3.fromRGB(130,130,130); b.BackgroundColor3 = s and Color3.fromRGB(60,60,60) or Color3.fromRGB(35,35,35); cb(s) end)
+end
+
+-- НАПОЛНЕНИЕ ВКЛАДОК
+cTgl("ЕСП НА РОЛИ", UDim2.new(0,15,0,10), CE, function(v) EAll = v end)
+cTgl("ЕСП ПИСТОЛЕТ", UDim2.new(0,15,0,60), CE, function(v) EGun = v end)
+cTgl("ВИДЕТЬ ИНФУ", UDim2.new(0,15,0,110), CE, function(v) SInf = v end)
+
+-- Авто-подбор предмета "Gun" с возвратом на старое место
+local tG = Instance.new("TextButton"); tG.Size = UDim2.new(1, -30, 0, 32); tG.Position = UDim2.new(0, 15, 0, 15); tG.BackgroundColor3 = Color3.fromRGB(35, 35, 35); tG.Text = "ТЕЛЕПОРТ К ПИСТОЛЕТУ"; tG.TextColor3 = Color3.fromRGB(200, 200, 200); tG.Font = Enum.Font.GothamBold; tG.TextSize = 11; tG.Parent = CP
+tG.MouseButton1Click:Connect(function()
+	local g = workspace:FindFirstChild("Gun") or workspace:FindFirstChild("GunDrop") or workspace:FindFirstChild("Luger")
+	if g and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+		local old = LP.Character.HumanoidRootPart.CFrame
+		LP.Character.HumanoidRootPart.CFrame = g.CFrame + Vector3.new(0,2,0)
+		task.spawn(function() while g.Parent == workspace do task.wait() end; task.wait(0.2); if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then LP.Character.HumanoidRootPart.CFrame = old end end)
+	end
+end)
+
+cTgl("KILL AURA (УБИЙЦА)", UDim2.new(0,15,0,60), CP, function(v)
+	_G.KA = v; while _G.KA do task.wait(0.1)
+		local k = LP.Character and LP.Character:FindFirstChild("Knife")
+		if k then for _, p in pairs(P:GetPlayers()) do if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			if (LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude < 12 then firetouchinterest(p.Character.HumanoidRootPart, k.Handle, 0); firetouchinterest(p.Character.HumanoidRootPart, k.Handle, 1) end
+		end end end
+	end
+end)
+
+cTgl("НОКЛИП", UDim2.new(0,15,0,10), CL, function(v) NClp = v end)
+cTgl("ВЕЛХОП (WALLHOP)", UDim2.new(0,15,0,60), CL, function(v) WHop = v end)
+
+local function cStat(t, pos, mode)
+	local b = Instance.new("TextButton"); b.Size = UDim2.new(0, 105, 0, 30); b.Position = pos; b.BackgroundColor3 = Color3.fromRGB(35, 35, 35); b.Text = t; b.TextColor3 = Color3.fromRGB(200, 200, 200); b.Font = Enum.Font.GothamBold; b.TextSize = 10; b.Parent = CL
+	b.MouseButton1Click:Connect(function() local h = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") if h then if mode == "S" then h.WalkSpeed = h.WalkSpeed == 16 and 45 or 16; b.Text = h.WalkSpeed == 45 and "СКОРОСТЬ: Х45" or "СКОРОСТЬ: СТАНД" else h.JumpPower = h.JumpPower == 50 and 90 or 50; b.Text = h.JumpPower == 90 and "ПРЫЖОК: Х90" or "ПРЫЖОК: СТАНД" end end end)
+end
+cStat("СКОРОСТЬ: СТАНД", UDim2.new(0,15,0,120), "S"); cStat("ПРЫЖОК: СТАНД", UDim2.new(0,130,0,120), "J")
+
+-- Круглая кнопка "ОТКРЫТЬ МЕНЮ" для телефонов
+local OB = Instance.new("TextButton"); OB.Size = UDim2.new(0, 50, 0, 50); OB.Position = UDim2.new(0, 15, 0, 15); OB.BackgroundColor3 = Color3.fromRGB(20, 20, 20); OB.Text = "МЕНЮ"; OB.TextColor3 = Color3.fromRGB(255, 255, 255); OB.Font = Enum.Font.GothamBold; OB.TextSize = 10; OB.Visible = false; OB.Parent = SG; local OC = Instance.new("UICorner"); OC.CornerRadius = UDim.new(0, 25); OC.Parent = OB
+local function TglM() MF.Visible = not MF.Visible; OB.Visible = not MF.Visible end
+OB.MouseButton1Click:Connect(TglM); U.InputBegan:Connect(function(i, g) if not g and i.KeyCode == Enum.KeyCode.Insert then TglM() end end)
+local CloseBtn = Instance.new("TextButton"); CloseBtn.Size = UDim2.new(0, 25, 0, 25); CloseBtn.Position = UDim2.new(1, -30, 0, 5); CloseBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); CloseBtn.Text = "X"; CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255); CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.Parent = MF; CloseBtn.MouseButton1Click:Connect(TglM)
+
+local function cBB(p) if p == LP then return end; p.CharacterAdded:Connect(function(char) local h = char:WaitForChild("Head", 5) if h and not h:FindFirstChild("EspInfo") then local bb = Instance.new("BillboardGui"); bb.Name = "EspInfo"; bb.AlwaysOnTop = true; bb.Size = UDim2.new(0,100,0,30); bb.StudsOffset = Vector3.new(0,2.5,0); bb.Parent = h; local t = Instance.new("TextLabel"); t.Size = UDim2.new(1,0,1,0); t.BackgroundTransparency = 1; t.TextColor3 = Color3.fromRGB(255,255,255); t.Font = Enum.Font.GothamBold; t.TextSize = 9; t.Parent = bb end end) end
+for _, p in pairs(P:GetPlayers()) do cBB(p) end P.PlayerAdded:Connect(cBB)
+
+-- ЛОГИКА СИСТЕМЫ ЕСП (ЦВЕТНЫЕ РОЛИ ДЛЯ DELTA)
+R.RenderStepped:Connect(function()
+	for _, p in pairs(P:GetPlayers()) do if p ~= LP and p.Character and p.Character:FindFirstChild("Head") then
+		local h = p.Character:FindFirstChildOfClass("Highlight")
+		if EAll then if not h then h = Instance.new("Highlight", p.Character) end
+			local isM = p.Character:FindFirstChild("Knife") or p.Backpack:FindFirstChild("Knife")
+			local isS = p.Character:FindFirstChild("Gun") or p.Backpack:FindFirstChild("Gun")
+			h.FillColor = isM and Color3.fromRGB(200,50,50) or (isS and Color3.fromRGB(50,50,200) or Color3.fromRGB(255,255,255))
+			h.Enabled = true
+		elseif h then h.Enabled = false end
+		local bb = p.Character.Head:FindFirstChild("EspInfo")
+		if bb and bb:FindFirstChildOfClass("TextLabel") then local tl = bb:FindFirstChildOfClass("TextLabel")
+			if SInf and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+				tl.Text = p.Name .. " [" .. math.floor((LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude) .. "m]"; tl.Visible = true
+			else tl.Visible = false end
+		end
+	end end
+	local gunPart = workspace:FindFirstChild("Gun") or workspace:FindFirstChild("GunDrop")
+	if gunPart and gunPart:IsA("BasePart") then local gh = gunPart:FindFirstChildOfClass("SelectionBox") if EGun then if not gh then gh = Instance.new("SelectionBox", gunPart); gh.Color3 = Color3.fromRGB(255,255,255) end gh.Adornee = gunPart; gh.Visible = true else if gh then gh.Visible = false end end end
+	if NClp and LP.Character then for _, part in pairs(LP.Character:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end end
+end)
+
+U.JumpRequest:Connect(function() if WHop and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+	local hrp = LP.Character.HumanoidRootPart; local r = Ray.new(hrp.Position, hrp.CFrame.LookVector * 3)
+	if workspace:FindPartOnRay(r, LP.Character) and LP.Character:FindFirstChildOfClass("Humanoid") then hrp.Velocity = Vector3.new(hrp.Velocity.X, 52, hrp.Velocity.Z) end
+end end)
