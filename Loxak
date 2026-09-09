@@ -1,0 +1,344 @@
+-- LocalScript (StarterPlayerScripts)
+
+local Players = game:GetService("Players")
+local RS = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+
+local Settings = {
+	Aimbot = {
+		Enabled = false,
+		FOV = 140,
+		Smooth = 0.15,
+		TeamCheck = true,
+		WallCheck = false,
+		AimPart = "Head"
+	},
+	ESP = {
+		Enabled = false,
+		MaxDist = 700
+	}
+}
+
+local AimParts = {"Head", "HumanoidRootPart", "UpperTorso"}
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "CheatGUI"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = LP:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 270, 0, 370)
+main.Position = UDim2.new(0, 12, 0.5, -185)
+main.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+main.BorderSizePixel = 0
+main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", main).Color = Color3.fromRGB(70, 70, 95)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+title.Text = "  ARENA CHEATS"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextColor3 = Color3.fromRGB(230, 230, 255)
+title.Parent = main
+Instance.new("UICorner", title).CornerRadius = UDim.new(0, 12)
+
+local function makeToggle(name, y, callback)
+	local f = Instance.new("Frame")
+	f.Size = UDim2.new(1, -24, 0, 36)
+	f.Position = UDim2.new(0, 12, 0, y)
+	f.BackgroundTransparency = 1
+	f.Parent = main
+
+	local l = Instance.new("TextLabel")
+	l.Size = UDim2.new(0.55, 0, 1, 0)
+	l.BackgroundTransparency = 1
+	l.Text = name
+	l.Font = Enum.Font.Gotham
+	l.TextSize = 14
+	l.TextColor3 = Color3.fromRGB(210, 210, 230)
+	l.TextXAlignment = Enum.TextXAlignment.Left
+	l.Parent = f
+
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0, 78, 0, 28)
+	b.Position = UDim2.new(1, -78, 0.5, -14)
+	b.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
+	b.Text = "OFF"
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 13
+	b.TextColor3 = Color3.fromRGB(200, 200, 200)
+	b.Parent = f
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 7)
+
+	local on = false
+	b.MouseButton1Click:Connect(function()
+		on = not on
+		b.Text = on and "ON" or "OFF"
+		b.BackgroundColor3 = on and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(55, 55, 70)
+		callback(on)
+	end)
+end
+
+makeToggle("Aimbot", 50, function(v) Settings.Aimbot.Enabled = v end)
+makeToggle("Wall Check", 90, function(v) Settings.Aimbot.WallCheck = v end)
+makeToggle("ESP", 130, function(v) Settings.ESP.Enabled = v end)
+
+-- Aim Part
+local partFrame = Instance.new("Frame")
+partFrame.Size = UDim2.new(1, -24, 0, 36)
+partFrame.Position = UDim2.new(0, 12, 0, 170)
+partFrame.BackgroundTransparency = 1
+partFrame.Parent = main
+
+local partLabel = Instance.new("TextLabel")
+partLabel.Size = UDim2.new(0.45, 0, 1, 0)
+partLabel.BackgroundTransparency = 1
+partLabel.Text = "Aim Part"
+partLabel.Font = Enum.Font.Gotham
+partLabel.TextSize = 14
+partLabel.TextColor3 = Color3.fromRGB(210, 210, 230)
+partLabel.TextXAlignment = Enum.TextXAlignment.Left
+partLabel.Parent = partFrame
+
+local partBtn = Instance.new("TextButton")
+partBtn.Size = UDim2.new(0, 120, 0, 28)
+partBtn.Position = UDim2.new(1, -120, 0.5, -14)
+partBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 80)
+partBtn.Text = "Head"
+partBtn.Font = Enum.Font.GothamBold
+partBtn.TextSize = 13
+partBtn.TextColor3 = Color3.fromRGB(200, 220, 255)
+partBtn.Parent = partFrame
+Instance.new("UICorner", partBtn).CornerRadius = UDim.new(0, 7)
+
+local partIndex = 1
+partBtn.MouseButton1Click:Connect(function()
+	partIndex = partIndex % #AimParts + 1
+	Settings.Aimbot.AimPart = AimParts[partIndex]
+	partBtn.Text = AimParts[partIndex]
+end)
+
+-- Слайдеры
+local function makeSlider(name, y, min, max, def, cb)
+	local f = Instance.new("Frame")
+	f.Size = UDim2.new(1, -24, 0, 48)
+	f.Position = UDim2.new(0, 12, 0, y)
+	f.BackgroundTransparency = 1
+	f.Parent = main
+
+	local l = Instance.new("TextLabel")
+	l.Size = UDim2.new(1, 0, 0, 16)
+	l.BackgroundTransparency = 1
+	l.Text = name .. ": " .. def
+	l.Font = Enum.Font.Gotham
+	l.TextSize = 13
+	l.TextColor3 = Color3.fromRGB(190, 190, 220)
+	l.TextXAlignment = Enum.TextXAlignment.Left
+	l.Parent = f
+
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.new(1, 0, 0, 9)
+	bar.Position = UDim2.new(0, 0, 0, 24)
+	bar.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+	bar.BorderSizePixel = 0
+	bar.Parent = f
+	Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
+
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.new((def - min) / (max - min), 0, 1, 0)
+	fill.BackgroundColor3 = Color3.fromRGB(90, 130, 255)
+	fill.BorderSizePixel = 0
+	fill.Parent = bar
+	Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+
+	bar.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			local conn
+			conn = RS.RenderStepped:Connect(function()
+				local a = math.clamp((UIS:GetMouseLocation().X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+				local v = math.floor(min + (max - min) * a)
+				fill.Size = UDim2.new(a, 0, 1, 0)
+				l.Text = name .. ": " .. v
+				cb(v)
+			end)
+			i.Changed:Connect(function()
+				if i.UserInputState == Enum.UserInputState.End then
+					conn:Disconnect()
+				end
+			end)
+		end
+	end)
+end
+
+makeSlider("FOV", 215, 50, 300, 140, function(v) Settings.Aimbot.FOV = v end)
+makeSlider("Smooth", 270, 5, 40, 15, function(v) Settings.Aimbot.Smooth = v / 100 end)
+
+-- Кнопка закрытия
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 34, 0, 34)
+close.Position = UDim2.new(1, -38, 0, 3)
+close.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
+close.Text = "X"
+close.Font = Enum.Font.GothamBold
+close.TextSize = 16
+close.TextColor3 = Color3.new(1, 1, 1)
+close.Parent = title
+Instance.new("UICorner", close).CornerRadius = UDim.new(0, 8)
+close.MouseButton1Click:Connect(function()
+	main.Visible = false
+end)
+
+-- Кнопка открытия (для телефона)
+local openBtn = Instance.new("TextButton")
+openBtn.Size = UDim2.new(0, 70, 0, 70)
+openBtn.Position = UDim2.new(1, -85, 1, -95)
+openBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+openBtn.Text = "CHEAT"
+openBtn.Font = Enum.Font.GothamBold
+openBtn.TextSize = 14
+openBtn.TextColor3 = Color3.fromRGB(220, 220, 255)
+openBtn.Parent = gui
+Instance.new("UICorner", openBtn).CornerRadius = UDim.new(0, 14)
+Instance.new("UIStroke", openBtn).Color = Color3.fromRGB(90, 90, 120)
+openBtn.MouseButton1Click:Connect(function()
+	main.Visible = not main.Visible
+end)
+
+-- ESP
+local folder = Instance.new("Folder")
+folder.Name = "ESP"
+folder.Parent = gui
+
+local function clearESP()
+	for _, v in pairs(folder:GetChildren()) do
+		v:Destroy()
+	end
+end
+
+local function makeESP(plr)
+	if plr == LP then return end
+	local char = plr.Character
+	if not char then return end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not hum or not root then return end
+
+	local bb = Instance.new("BillboardGui")
+	bb.Name = plr.Name
+	bb.Adornee = root
+	bb.Size = UDim2.new(0, 130, 0, 42)
+	bb.StudsOffset = Vector3.new(0, 3.1, 0)
+	bb.AlwaysOnTop = true
+	bb.Parent = folder
+
+	local fr = Instance.new("Frame")
+	fr.Size = UDim2.new(1, 0, 1, 0)
+	fr.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+	fr.BackgroundTransparency = 0.3
+	fr.BorderSizePixel = 0
+	fr.Parent = bb
+	Instance.new("UICorner", fr).CornerRadius = UDim.new(0, 6)
+
+	local nameL = Instance.new("TextLabel")
+	nameL.Size = UDim2.new(1, -4, 0, 16)
+	nameL.Position = UDim2.new(0, 2, 0, 2)
+	nameL.BackgroundTransparency = 1
+	nameL.Text = plr.Name
+	nameL.Font = Enum.Font.GothamBold
+	nameL.TextSize = 12
+	nameL.TextColor3 = Color3.new(1, 1, 1)
+	nameL.Parent = fr
+
+	local info = Instance.new("TextLabel")
+	info.Size = UDim2.new(1, -4, 0, 14)
+	info.Position = UDim2.new(0, 2, 0, 18)
+	info.BackgroundTransparency = 1
+	info.Font = Enum.Font.Gotham
+	info.TextSize = 11
+	info.TextColor3 = Color3.fromRGB(170, 210, 255)
+	info.Parent = fr
+
+	local conn
+	conn = RS.RenderStepped:Connect(function()
+		if not char.Parent or not root.Parent or hum.Health <= 0 then
+			bb:Destroy()
+			conn:Disconnect()
+			return
+		end
+		local d = (root.Position - Camera.CFrame.Position).Magnitude
+		bb.Enabled = d <= Settings.ESP.MaxDist
+		info.Text = math.floor(d) .. "m  HP:" .. math.floor(hum.Health)
+	end)
+end
+
+-- Wall Check
+local function isVisible(part)
+	local origin = Camera.CFrame.Position
+	local direction = part.Position - origin
+	local result = workspace:Raycast(origin, direction)
+	if not result then return true end
+	return result.Instance:IsDescendantOf(part.Parent)
+end
+
+-- Aimbot
+local function getTarget()
+	local closest = nil
+	local shortest = Settings.Aimbot.FOV
+
+	for _, p in pairs(Players:GetPlayers()) do
+		if p == LP then continue end
+		if Settings.Aimbot.TeamCheck and p.Team == LP.Team then continue end
+
+		local char = p.Character
+		if not char then continue end
+
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		local part = char:FindFirstChild(Settings.Aimbot.AimPart) or char:FindFirstChild("HumanoidRootPart")
+		if not hum or not part or hum.Health <= 0 then continue end
+
+		if Settings.Aimbot.WallCheck and not isVisible(part) then continue end
+
+		local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+		if not onScreen then continue end
+
+		local dist = (Vector2.new(pos.X, pos.Y) - Camera.ViewportSize / 2).Magnitude
+		if dist < shortest then
+			shortest = dist
+			closest = part
+		end
+	end
+	return closest
+end
+
+-- Главный цикл
+RS.RenderStepped:Connect(function()
+	-- ESP
+	if Settings.ESP.Enabled then
+		for _, p in pairs(Players:GetPlayers()) do
+			if p \~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+				if not folder:FindFirstChild(p.Name) then
+					makeESP(p)
+				end
+			end
+		end
+	else
+		clearESP()
+	end
+
+	-- Aimbot
+	if Settings.Aimbot.Enabled then
+		local target = getTarget()
+		if target then
+			Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Position), Settings.Aimbot.Smooth)
+		end
+	end
+end)
+
+print("Cheat GUI загружен")
