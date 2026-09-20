@@ -1,0 +1,474 @@
+-- MM2 Tool: Immortal + Roles + Punch (компактная версия)
+local P=game:GetService("Players")
+local UIS=game:GetService("UserInputService")
+local TW=game:GetService("TweenService")
+local RS=game:GetService("RunService")
+local LP=P.LocalPlayer
+local PG=LP:WaitForChild("PlayerGui")
+local CHR,HRP,HUM
+
+local CFG={Size=UDim2.new(0,280,0,340),Accent=Color3.fromRGB(120,80,255),Delay=0.1,ResetD=0.15}
+
+local active,saved,conn=false,nil,nil
+local guiOpen=true
+local target=nil
+local loop=nil
+local currentBtn=nil
+
+local old=PG:FindFirstChild("MM2_Tool"); if old then old:Destroy() end
+
+local SG=Instance.new("ScreenGui")
+SG.Name="MM2_Tool"; SG.ResetOnSpawn=false; SG.IgnoreGuiInset=true
+SG.ZIndexBehavior=Enum.ZIndexBehavior.Sibling; SG.Parent=PG
+
+local function corner(p,r) local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,r); c.Parent=p; return c end
+local function stroke(p,c,t) local s=Instance.new("UIStroke"); s.Color=c; s.Thickness=t or 1.5; s.Parent=p; return s end
+
+-- Иконка
+local Icon=Instance.new("TextButton")
+Icon.Size=UDim2.new(0,42,0,42); Icon.Position=UDim2.new(0,16,0.5,-21)
+Icon.BackgroundColor3=Color3.fromRGB(25,25,35); Icon.BorderSizePixel=0
+Icon.Text="⚡"; Icon.TextColor3=CFG.Accent; Icon.TextSize=22
+Icon.Font=Enum.Font.GothamBold; Icon.AutoButtonColor=false; Icon.Parent=SG
+corner(Icon,21); stroke(Icon,CFG.Accent)
+
+-- Окно
+local MF=Instance.new("Frame")
+MF.Size=CFG.Size; MF.Position=UDim2.new(0.5,-140,0.5,-170)
+MF.BackgroundColor3=Color3.fromRGB(25,25,35); MF.BorderSizePixel=0
+MF.ClipsDescendants=true; MF.Parent=SG
+corner(MF,12); stroke(MF,CFG.Accent)
+
+local TB=Instance.new("TextLabel")
+TB.Size=UDim2.new(1,0,0,36); TB.BackgroundColor3=Color3.fromRGB(18,18,28)
+TB.BorderSizePixel=0; TB.Text="  ⚡ MM2"; TB.TextColor3=Color3.fromRGB(255,255,255)
+TB.TextSize=13; TB.Font=Enum.Font.GothamBold
+TB.TextXAlignment=Enum.TextXAlignment.Left; TB.Parent=MF
+corner(TB,12)
+
+local CB=Instance.new("TextButton")
+CB.Size=UDim2.new(0,26,0,26); CB.Position=UDim2.new(1,-32,0,5)
+CB.BackgroundColor3=Color3.fromRGB(200,60,60); CB.BorderSizePixel=0
+CB.Text="×"; CB.TextColor3=Color3.fromRGB(255,255,255); CB.TextSize=17
+CB.Font=Enum.Font.GothamBold; CB.AutoButtonColor=false; CB.Parent=TB
+corner(CB,13)
+
+local CT=Instance.new("Frame")
+CT.Size=UDim2.new(1,-16,1,-44); CT.Position=UDim2.new(0,8,0,40)
+CT.BackgroundTransparency=1; CT.Parent=MF
+
+-- Вкладки
+local TabFrame=Instance.new("Frame")
+TabFrame.Size=UDim2.new(1,0,0,26); TabFrame.BackgroundTransparency=1; TabFrame.Parent=CT
+
+local function makeTab(t,x)
+    local b=Instance.new("TextButton")
+    b.Size=UDim2.new(0.33,-3,1,0); b.Position=UDim2.new(x,0,0,0)
+    b.BackgroundColor3=Color3.fromRGB(35,35,50); b.BorderSizePixel=0
+    b.Text=t; b.TextColor3=Color3.fromRGB(180,180,190); b.TextSize=10
+    b.Font=Enum.Font.GothamBold; b.AutoButtonColor=false; b.Parent=TabFrame
+    corner(b,6); return b
+end
+
+local TabImm=makeTab("БЕССМЕРТИЕ",0)
+local TabRoles=makeTab("РОЛИ",0.33)
+local TabPunch=makeTab("УДАР",0.66)
+
+local function makePage()
+    local f=Instance.new("Frame")
+    f.Size=UDim2.new(1,0,1,-32); f.Position=UDim2.new(0,0,0,32)
+    f.BackgroundTransparency=1; f.Visible=false; f.Parent=CT
+    return f
+end
+local PageImm=makePage()
+local PageRoles=makePage()
+local PagePunch=makePage()
+
+local function selectTab(a)
+    for _,t in ipairs{TabImm,TabRoles,TabPunch} do
+        t.BackgroundColor3=Color3.fromRGB(35,35,50); t.TextColor3=Color3.fromRGB(180,180,190)
+    end
+    a.BackgroundColor3=CFG.Accent; a.TextColor3=Color3.fromRGB(255,255,255)
+    PageImm.Visible=(a==TabImm); PageRoles.Visible=(a==TabRoles); PagePunch.Visible=(a==TabPunch)
+end
+selectTab(TabImm)
+
+TabImm.MouseButton1Click:Connect(function() selectTab(TabImm) end)
+TabRoles.MouseButton1Click:Connect(function() selectTab(TabRoles) end)
+TabPunch.MouseButton1Click:Connect(function() selectTab(TabPunch) end)
+
+-- ===== БЕССМЕРТИЕ =====
+local SDot=Instance.new("Frame")
+SDot.Size=UDim2.new(0,8,0,8); SDot.Position=UDim2.new(0,3,0,4)
+SDot.BackgroundColor3=Color3.fromRGB(80,80,80); SDot.BorderSizePixel=0; SDot.Parent=PageImm
+corner(SDot,4)
+
+local SLbl=Instance.new("TextLabel")
+SLbl.Size=UDim2.new(1,-24,0,16); SLbl.Position=UDim2.new(0,17,0,0)
+SLbl.BackgroundTransparency=1; SLbl.Text="Готов"; SLbl.TextColor3=Color3.fromRGB(150,150,160)
+SLbl.TextSize=11; SLbl.Font=Enum.Font.Gotham
+SLbl.TextXAlignment=Enum.TextXAlignment.Left; SLbl.Parent=PageImm
+
+local ImmBtn=Instance.new("TextButton")
+ImmBtn.Size=UDim2.new(1,0,0,54); ImmBtn.Position=UDim2.new(0,0,0,24)
+ImmBtn.BackgroundColor3=Color3.fromRGB(35,35,50); ImmBtn.BorderSizePixel=0
+ImmBtn.Text=""; ImmBtn.AutoButtonColor=false; ImmBtn.Parent=PageImm
+corner(ImmBtn,10); stroke(ImmBtn,Color3.fromRGB(80,80,100))
+
+local ImmTxt=Instance.new("TextLabel")
+ImmTxt.Size=UDim2.new(1,0,0,24); ImmTxt.Position=UDim2.new(0,0,0,6)
+ImmTxt.BackgroundTransparency=1; ImmTxt.Text="♻️  АКТИВИРОВАТЬ"
+ImmTxt.TextColor3=Color3.fromRGB(200,200,210); ImmTxt.TextSize=13
+ImmTxt.Font=Enum.Font.GothamBold; ImmTxt.Parent=ImmBtn
+
+local ImmSub=Instance.new("TextLabel")
+ImmSub.Size=UDim2.new(1,0,0,16); ImmSub.Position=UDim2.new(0,0,0,32)
+ImmSub.BackgroundTransparency=1; ImmSub.Text="Возврат после смерти"
+ImmSub.TextColor3=Color3.fromRGB(120,120,140); ImmSub.TextSize=9
+ImmSub.Font=Enum.Font.Gotham; ImmSub.Parent=ImmBtn
+
+local Info=Instance.new("TextLabel")
+Info.Size=UDim2.new(1,0,0,56); Info.Position=UDim2.new(0,0,0,86)
+Info.BackgroundColor3=Color3.fromRGB(20,20,30); Info.BorderSizePixel=0
+Info.Text="📋 Только в раунде.\nПКМ по кнопке — выключить."
+Info.TextColor3=Color3.fromRGB(150,150,165); Info.TextSize=10
+Info.Font=Enum.Font.Gotham; Info.TextWrapped=true
+Info.TextYAlignment=Enum.TextYAlignment.Center; Info.Parent=PageImm
+corner(Info,8)
+
+-- ===== РОЛИ =====
+local RScroll=Instance.new("ScrollingFrame")
+RScroll.Size=UDim2.new(1,0,1,0); RScroll.BackgroundColor3=Color3.fromRGB(20,20,30)
+RScroll.BorderSizePixel=0; RScroll.ScrollBarThickness=3
+RScroll.ScrollBarImageColor3=CFG.Accent; RScroll.CanvasSize=UDim2.new(0,0,0,0)
+RScroll.AutomaticCanvasSize=Enum.AutomaticSize.Y; RScroll.Parent=PageRoles
+corner(RScroll,8)
+
+local RList=Instance.new("UIListLayout")
+RList.Padding=UDim.new(0,3); RList.SortOrder=Enum.SortOrder.LayoutOrder; RList.Parent=RScroll
+
+local RPad=Instance.new("UIPadding")
+RPad.PaddingTop=UDim.new(0,5); RPad.PaddingBottom=UDim.new(0,5)
+RPad.PaddingLeft=UDim.new(0,5); RPad.PaddingRight=UDim.new(0,5); RPad.Parent=RScroll
+
+-- ===== УДАР =====
+local PScroll=Instance.new("ScrollingFrame")
+PScroll.Size=UDim2.new(1,0,0.66,0); PScroll.BackgroundColor3=Color3.fromRGB(20,20,30)
+PScroll.BorderSizePixel=0; PScroll.ScrollBarThickness=3
+PScroll.ScrollBarImageColor3=Color3.fromRGB(255,100,100); PScroll.CanvasSize=UDim2.new(0,0,0,0)
+PScroll.AutomaticCanvasSize=Enum.AutomaticSize.Y; PScroll.Parent=PagePunch
+corner(PScroll,8)
+
+local PList=Instance.new("UIListLayout")
+PList.Padding=UDim.new(0,3); PList.SortOrder=Enum.SortOrder.LayoutOrder; PList.Parent=PScroll
+
+local PPad=Instance.new("UIPadding")
+PPad.PaddingTop=UDim.new(0,5); PPad.PaddingBottom=UDim.new(0,5)
+PPad.PaddingLeft=UDim.new(0,5); PPad.PaddingRight=UDim.new(0,5); PPad.Parent=PScroll
+
+local PInfo=Instance.new("TextLabel")
+PInfo.Size=UDim2.new(1,0,0,34); PInfo.Position=UDim2.new(0,0,0.68,0)
+PInfo.BackgroundColor3=Color3.fromRGB(30,30,42); PInfo.BorderSizePixel=0
+PInfo.Text="Выбери игрока → толчок.\nПовторный клик — остановка."
+PInfo.TextColor3=Color3.fromRGB(180,180,190); PInfo.TextSize=10
+PInfo.Font=Enum.Font.Gotham; PInfo.TextWrapped=true; PInfo.Parent=PagePunch
+corner(PInfo,8)
+
+local StopBtn=Instance.new("TextButton")
+StopBtn.Size=UDim2.new(1,0,0,28); StopBtn.Position=UDim2.new(0,0,1,-28)
+StopBtn.BackgroundColor3=Color3.fromRGB(150,40,40); StopBtn.BorderSizePixel=0
+StopBtn.Text="⏹ СТОП"; StopBtn.TextColor3=Color3.fromRGB(255,255,255)
+StopBtn.TextSize=11; StopBtn.Font=Enum.Font.GothamBold
+StopBtn.AutoButtonColor=false; StopBtn.Parent=PagePunch
+corner(StopBtn,6)
+
+-- ===== АНИМАЦИИ =====
+local function openGui()
+    if guiOpen then return end
+    guiOpen=true; MF.Visible=true; MF.Size=UDim2.new(0,0,0,0)
+    TW:Create(MF,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=CFG.Size}):Play()
+end
+local function closeGui()
+    if not guiOpen then return end
+    guiOpen=false
+    local t=TW:Create(MF,TweenInfo.new(0.18,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)})
+    t:Play(); t.Completed:Connect(function() MF.Visible=false end)
+end
+
+Icon.MouseButton1Click:Connect(function() if guiOpen then closeGui() else openGui() end end)
+CB.MouseButton1Click:Connect(closeGui)
+
+do
+    local drag,ds,sp=false,nil,nil
+    TB.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            drag=true; ds=i.Position; sp=MF.Position
+            i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then drag=false end end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+            local d=i.Position-ds
+            MF.Position=UDim2.new(sp.X.Scale,sp.X.Offset+d.X,sp.Y.Scale,sp.Y.Offset+d.Y)
+        end
+    end)
+end
+
+do
+    local drag,ds,sp=false,nil,nil
+    Icon.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            drag=true; ds=i.Position; sp=Icon.Position
+            i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then drag=false end end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+            local d=i.Position-ds
+            Icon.Position=UDim2.new(sp.X.Scale,sp.X.Offset+d.X,sp.Y.Scale,sp.Y.Offset+d.Y)
+        end
+    end)
+end
+
+-- ===== РОЛИ ЛОГИКА =====
+local function getRole(plr)
+    local c=plr.Character
+    if not c then return "—",Color3.fromRGB(120,120,140) end
+    for _,tag in ipairs{"Murderer","Sheriff","Innocent","Hero"} do
+        if c:FindFirstChild(tag) then
+            local col=tag=="Murderer" and Color3.fromRGB(255,80,80)
+                or tag=="Sheriff" and Color3.fromRGB(80,150,255)
+                or Color3.fromRGB(80,255,120)
+            return tag,col
+        end
+    end
+    local r=c:GetAttribute("Role") or plr:GetAttribute("Role")
+    if r then
+        local col=r=="Murderer" and Color3.fromRGB(255,80,80)
+            or r=="Sheriff" and Color3.fromRGB(80,150,255)
+            or Color3.fromRGB(80,255,120)
+        return tostring(r),col
+    end
+    return "—",Color3.fromRGB(120,120,140)
+end
+
+local function refreshRoles()
+    for _,c in ipairs(RScroll:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+    for _,plr in ipairs(P:GetPlayers()) do
+        local role,col=getRole(plr)
+        local row=Instance.new("Frame")
+        row.Size=UDim2.new(1,-6,0,22); row.BackgroundColor3=Color3.fromRGB(30,30,42)
+        row.BorderSizePixel=0; row.Parent=RScroll; corner(row,5)
+        local nm=Instance.new("TextLabel")
+        nm.Size=UDim2.new(0.62,0,1,0); nm.Position=UDim2.new(0,6,0,0)
+        nm.BackgroundTransparency=1; nm.Text=plr.Name; nm.TextColor3=Color3.fromRGB(220,220,230)
+        nm.TextSize=10; nm.Font=Enum.Font.Gotham
+        nm.TextXAlignment=Enum.TextXAlignment.Left; nm.Parent=row
+        local rl=Instance.new("TextLabel")
+        rl.Size=UDim2.new(0.35,-4,1,0); rl.Position=UDim2.new(0.65,0,0,0)
+        rl.BackgroundTransparency=1; rl.Text=role; rl.TextColor3=col
+        rl.TextSize=10; rl.Font=Enum.Font.GothamBold
+        rl.TextXAlignment=Enum.TextXAlignment.Right; rl.Parent=row
+    end
+end
+
+-- ===== УДАР ЛОГИКА =====
+local function stopPunch()
+    if loop then loop:Disconnect(); loop=nil end
+    target=nil
+    if LP.Character then
+        for _,p in ipairs(LP.Character:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide=true end
+        end
+    end
+    if currentBtn then
+        currentBtn.BackgroundColor3=Color3.fromRGB(45,30,40)
+        currentBtn.TextColor3=Color3.fromRGB(255,180,180)
+        currentBtn=nil
+    end
+    StopBtn.Text="⏹ СТОП"
+end
+
+local function doPunch(plr, btn)
+    -- Если кликнули по тому же игроку — остановить
+    if target==plr then
+        stopPunch()
+        return
+    end
+
+    stopPunch()
+    target=plr
+    currentBtn=btn
+    StopBtn.Text="💥 БЬЮ: "..plr.Name
+    if btn then
+        btn.BackgroundColor3=Color3.fromRGB(150,40,40)
+        btn.TextColor3=Color3.fromRGB(255,255,255)
+    end
+
+    local myChar=LP.Character
+    if not myChar then return end
+    local myHrp=myChar:FindFirstChild("HumanoidRootPart")
+    local tChar=plr.Character
+    if not tChar or not myHrp then return end
+    local tHrp=tChar:FindFirstChild("HumanoidRootPart")
+    if not tHrp then return end
+
+    for _,p in ipairs(myChar:GetDescendants()) do
+        if p:IsA("BasePart") then p.CanCollide=true end
+    end
+    for _,p in ipairs(tChar:GetDescendants()) do
+        if p:IsA("BasePart") then p.CanCollide=true end
+    end
+
+    local dir=tHrp.Position-myHrp.Position
+    if dir.Magnitude<0.1 then dir=Vector3.new(0,0,1) end
+    local look=dir.Unit
+
+    myHrp.CFrame=CFrame.new(tHrp.Position-look*3, tHrp.Position)
+    tHrp.AssemblyLinearVelocity=look*400 + Vector3.new(0,180,0)
+
+    loop=RS.Heartbeat:Connect(function()
+        if not target or not target.Parent then stopPunch(); return end
+        local mc=LP.Character
+        local tc=target.Character
+        if not mc or not tc then return end
+        local mh=mc:FindFirstChild("HumanoidRootPart")
+        local th=tc:FindFirstChild("HumanoidRootPart")
+        if not mh or not th then return end
+
+        for _,p in ipairs(mc:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide=true end
+        end
+        for _,p in ipairs(tc:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide=true end
+        end
+
+        local d=th.Position-mh.Position
+        if d.Magnitude<0.1 then d=Vector3.new(0,0,1) end
+        local l=d.Unit
+
+        mh.CFrame=CFrame.new(th.Position-l*3, th.Position)
+        mh.AssemblyLinearVelocity=l*300
+        th.AssemblyLinearVelocity=l*400 + Vector3.new(0,180,0)
+    end)
+end
+
+local function refreshPunch()
+    for _,c in ipairs(PScroll:GetChildren()) do
+        if c:IsA("TextButton") then c:Destroy() end
+    end
+    for _,plr in ipairs(P:GetPlayers()) do
+        if plr~=LP then
+            local btn=Instance.new("TextButton")
+            btn.Size=UDim2.new(1,-6,0,24); btn.BackgroundColor3=Color3.fromRGB(45,30,40)
+            btn.BorderSizePixel=0; btn.Text=plr.Name
+            btn.TextColor3=Color3.fromRGB(255,180,180); btn.TextSize=10
+            btn.Font=Enum.Font.Gotham; btn.AutoButtonColor=false; btn.Parent=PScroll
+            corner(btn,5)
+            btn.MouseButton1Click:Connect(function() doPunch(plr, btn) end)
+        end
+    end
+end
+
+StopBtn.MouseButton1Click:Connect(stopPunch)
+
+-- ===== БЕССМЕРТИЕ ЛОГИКА =====
+local function setStatus(t,c)
+    SLbl.Text=t
+    SLbl.TextColor3=c or Color3.fromRGB(150,150,160)
+    SDot.BackgroundColor3=c or Color3.fromRGB(80,80,80)
+end
+
+local function inRound()
+    local c=LP.Character
+    if not c then return false end
+    local h=c:FindFirstChildOfClass("Humanoid")
+    local hrp=c:FindFirstChild("HumanoidRootPart")
+    if not h or not hrp then return false end
+    if h.Health<=0 then return false end
+    local y=hrp.Position.Y
+    if y<-50 or y>500 then return false end
+    return true
+end
+
+local function onRespawn(char)
+    if not active or not saved then return end
+    setStatus("Респавн · возврат...",Color3.fromRGB(255,200,80))
+    local hrp=char:WaitForChild("HumanoidRootPart",5)
+    if not hrp then return end
+    task.wait(CFG.Delay)
+    if hrp and hrp.Parent and saved then
+        local y=saved.Position.Y
+        if y>-50 and y<500 then
+            hrp.CFrame=saved
+            setStatus("Активно · ждём смерть",Color3.fromRGB(80,255,120))
+        else
+            setStatus("Позиция невалидна",Color3.fromRGB(255,80,80))
+        end
+    end
+end
+
+local function activate()
+    if not inRound() then
+        setStatus("Не в раунде (лобби)",Color3.fromRGB(255,80,80)); return
+    end
+    local hrp=LP.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then setStatus("Нет HRP",Color3.fromRGB(255,80,80)); return end
+    saved=hrp.CFrame
+    active=true
+    setStatus("Активация · сброс...",Color3.fromRGB(255,200,80))
+    if conn then conn:Disconnect() end
+    conn=LP.CharacterAdded:Connect(onRespawn)
+    task.wait(CFG.ResetD)
+    local c=LP.Character
+    if c then
+        local h=c:FindFirstChildOfClass("Humanoid")
+        if h then h.Health=0 else c:BreakJoints() end
+    end
+    ImmTxt.Text="🔄  ПОВТОРИТЬ"
+    ImmTxt.TextColor3=Color3.fromRGB(80,255,120)
+    ImmBtn.BackgroundColor3=Color3.fromRGB(30,55,40)
+    ImmSub.Text="Нажми ещё раз"
+end
+
+local function deactivate()
+    active=false
+    if conn then conn:Disconnect(); conn=nil end
+    saved=nil
+    setStatus("Готов",Color3.fromRGB(150,150,160))
+    ImmTxt.Text="♻️  АКТИВИРОВАТЬ"
+    ImmTxt.TextColor3=Color3.fromRGB(200,200,210)
+    ImmBtn.BackgroundColor3=Color3.fromRGB(35,35,50)
+    ImmSub.Text="Возврат после смерти"
+end
+
+ImmBtn.MouseButton1Click:Connect(activate)
+ImmBtn.MouseButton2Click:Connect(deactivate)
+
+-- ===== ОБНОВЛЕНИЕ =====
+task.spawn(function()
+    while task.wait(1) do
+        if guiOpen and PageRoles.Visible then refreshRoles() end
+        if guiOpen and PagePunch.Visible then refreshPunch() end
+    end
+end)
+
+P.PlayerAdded:Connect(function() task.wait(0.5); refreshRoles(); refreshPunch() end)
+P.PlayerRemoving:Connect(function() task.wait(0.5); refreshRoles(); refreshPunch() end)
+
+refreshRoles(); refreshPunch()
+
+LP.CharacterAdded:Connect(function(c)
+    CHR=c
+    HRP=c:WaitForChild("HumanoidRootPart",5)
+    HUM=c:WaitForChild("Humanoid",5)
+end)
+if LP.Character then
+    CHR=LP.Character
+    HRP=CHR:FindFirstChild("HumanoidRootPart")
+    HUM=CHR:FindFirstChildOfClass("Humanoid")
+end
+
+print("[MM2 Tool] Загружено.")
