@@ -1,0 +1,434 @@
+-- // MM2 Скрипт "Фейк-смерть" (бессмертие) — ИСПРАВЛЕННЫЙ
+-- // Кнопка сама делает: сохранить позицию -> респавн -> телепорт обратно
+-- // Есть плавающая иконка для открытия/закрытия окна
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- // ================= НАСТРОЙКИ =================
+local CONFIG = {
+    TeleportDelay = 0.1,        -- задержка после респавна перед телепортом
+    GuiSize = UDim2.new(0, 320, 0, 440),
+    AccentColor = Color3.fromRGB(120, 80, 255),
+    ResetDelay = 0.15,          -- задержка перед сбросом персонажа
+}
+
+-- // ================= СОСТОЯНИЕ =================
+local isActive = false
+local savedCFrame = nil
+local characterConn = nil
+local guiOpen = true
+
+-- Защита от дублирования GUI
+local existing = PlayerGui:FindFirstChild("MM2_Immortal")
+if existing then existing:Destroy() end
+
+-- // ================= СОЗДАНИЕ GUI =================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MM2_Immortal"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = PlayerGui
+
+-- // ===== Плавающая иконка (открыть/закрыть) =====
+local ToggleIcon = Instance.new("TextButton")
+ToggleIcon.Name = "ToggleIcon"
+ToggleIcon.Size = UDim2.new(0, 50, 0, 50)
+ToggleIcon.Position = UDim2.new(0, 20, 0.5, -25)
+ToggleIcon.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+ToggleIcon.BorderSizePixel = 0
+ToggleIcon.Text = "⚡"
+ToggleIcon.TextColor3 = CONFIG.AccentColor
+ToggleIcon.TextSize = 26
+ToggleIcon.Font = Enum.Font.GothamBold
+ToggleIcon.AutoButtonColor = false
+ToggleIcon.Parent = ScreenGui
+
+local IconCorner = Instance.new("UICorner")
+IconCorner.CornerRadius = UDim.new(1, 0)
+IconCorner.Parent = ToggleIcon
+
+local IconStroke = Instance.new("UIStroke")
+IconStroke.Color = CONFIG.AccentColor
+IconStroke.Thickness = 1.5
+IconStroke.Parent = ToggleIcon
+
+-- // ===== Главное окно =====
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = CONFIG.GuiSize
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -220)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
+
+local FrameCorner = Instance.new("UICorner")
+FrameCorner.CornerRadius = UDim.new(0, 14)
+FrameCorner.Parent = MainFrame
+
+local FrameStroke = Instance.new("UIStroke")
+FrameStroke.Color = CONFIG.AccentColor
+FrameStroke.Thickness = 1.5
+FrameStroke.Transparency = 0.3
+FrameStroke.Parent = MainFrame
+
+-- Заголовок
+local TitleBar = Instance.new("TextLabel")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 48)
+TitleBar.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
+TitleBar.BorderSizePixel = 0
+TitleBar.Text = "  ⚡ MM2 БЕССМЕРТИЕ"
+TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleBar.TextSize = 16
+TitleBar.Font = Enum.Font.GothamBold
+TitleBar.TextXAlignment = Enum.TextXAlignment.Left
+TitleBar.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 14)
+TitleCorner.Parent = TitleBar
+
+-- Кнопка закрытия (сворачивает окно)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 32, 0, 32)
+CloseBtn.Position = UDim2.new(1, -40, 0, 8)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Text = "×"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 22
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.AutoButtonColor = false
+CloseBtn.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(1, 0)
+CloseCorner.Parent = CloseBtn
+
+-- Контент
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -24, 1, -70)
+Content.Position = UDim2.new(0, 12, 0, 58)
+Content.BackgroundTransparency = 1
+Content.Parent = MainFrame
+
+-- Индикатор
+local StatusDot = Instance.new("Frame")
+StatusDot.Size = UDim2.new(0, 10, 0, 10)
+StatusDot.Position = UDim2.new(0, 4, 0, 6)
+StatusDot.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+StatusDot.BorderSizePixel = 0
+StatusDot.Parent = Content
+
+local DotCorner = Instance.new("UICorner")
+DotCorner.CornerRadius = UDim.new(1, 0)
+DotCorner.Parent = StatusDot
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, -30, 0, 20)
+StatusLabel.Position = UDim2.new(0, 22, 0, 1)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Готов"
+StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
+StatusLabel.TextSize = 14
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.Parent = Content
+
+-- // ===== ГЛАВНАЯ КНОПКА =====
+local ActionBtn = Instance.new("TextButton")
+ActionBtn.Size = UDim2.new(1, 0, 0, 70)
+ActionBtn.Position = UDim2.new(0, 0, 0, 40)
+ActionBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+ActionBtn.BorderSizePixel = 0
+ActionBtn.Text = ""
+ActionBtn.AutoButtonColor = false
+ActionBtn.Parent = Content
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(0, 12)
+BtnCorner.Parent = ActionBtn
+
+local BtnStroke = Instance.new("UIStroke")
+BtnStroke.Color = Color3.fromRGB(80, 80, 100)
+BtnStroke.Thickness = 1.5
+BtnStroke.Parent = ActionBtn
+
+local BtnText = Instance.new("TextLabel")
+BtnText.Size = UDim2.new(1, 0, 0, 30)
+BtnText.Position = UDim2.new(0, 0, 0, 8)
+BtnText.BackgroundTransparency = 1
+BtnText.Text = "♻️  АКТИВИРОВАТЬ"
+BtnText.TextColor3 = Color3.fromRGB(200, 200, 210)
+BtnText.TextSize = 17
+BtnText.Font = Enum.Font.GothamBold
+BtnText.Parent = ActionBtn
+
+local BtnSubText = Instance.new("TextLabel")
+BtnSubText.Size = UDim2.new(1, 0, 0, 20)
+BtnSubText.Position = UDim2.new(0, 0, 0, 42)
+BtnSubText.BackgroundTransparency = 1
+BtnSubText.Text = "Сохранит позицию и вернёт после смерти"
+BtnSubText.TextColor3 = Color3.fromRGB(120, 120, 140)
+BtnSubText.TextSize = 12
+BtnSubText.Font = Enum.Font.Gotham
+BtnSubText.Parent = ActionBtn
+
+-- // ===== Инфо-панель =====
+local InfoPanel = Instance.new("Frame")
+InfoPanel.Size = UDim2.new(1, 0, 0, 60)
+InfoPanel.Position = UDim2.new(0, 0, 0, 125)
+InfoPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+InfoPanel.BorderSizePixel = 0
+InfoPanel.Parent = Content
+
+local InfoCorner = Instance.new("UICorner")
+InfoCorner.CornerRadius = UDim.new(0, 10)
+InfoCorner.Parent = InfoPanel
+
+local InfoTitle = Instance.new("TextLabel")
+InfoTitle.Size = UDim2.new(1, -20, 0, 20)
+InfoTitle.Position = UDim2.new(0, 10, 0, 6)
+InfoTitle.BackgroundTransparency = 1
+InfoTitle.Text = "📋 КАК ЭТО РАБОТАЕТ"
+InfoTitle.TextColor3 = CONFIG.AccentColor
+InfoTitle.TextSize = 11
+InfoTitle.Font = Enum.Font.GothamBold
+InfoTitle.TextXAlignment = Enum.TextXAlignment.Left
+InfoTitle.Parent = InfoPanel
+
+local InfoText = Instance.new("TextLabel")
+InfoText.Size = UDim2.new(1, -20, 0, 32)
+InfoText.Position = UDim2.new(0, 10, 0, 24)
+InfoText.BackgroundTransparency = 1
+InfoText.Text = "1. Встань в безопасном месте\n2. Нажми кнопку — персонаж сбросится\n3. Скрипт вернёт тебя на ту же точку"
+InfoText.TextColor3 = Color3.fromRGB(160, 160, 170)
+InfoText.TextSize = 11
+InfoText.Font = Enum.Font.Gotham
+InfoText.TextXAlignment = Enum.TextXAlignment.Left
+InfoText.TextYAlignment = Enum.TextYAlignment.Top
+InfoText.Parent = InfoPanel
+
+-- // ================= АНИМАЦИИ =================
+local function setStatus(text, color)
+    StatusLabel.Text = text
+    StatusLabel.TextColor3 = color or Color3.fromRGB(150, 150, 160)
+    StatusDot.BackgroundColor3 = color or Color3.fromRGB(80, 80, 80)
+end
+
+local function openGui()
+    if guiOpen then return end
+    guiOpen = true
+    MainFrame.Visible = true
+    MainFrame.Size = UDim2.new(0, 0, 0, 0)
+    TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = CONFIG.GuiSize
+    }):Play()
+end
+
+local function closeGui()
+    if not guiOpen then return end
+    guiOpen = false
+    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0)
+    })
+    tween:Play()
+    tween.Completed:Connect(function()
+        MainFrame.Visible = false
+    end)
+end
+
+-- Клик по иконке — открыть/закрыть
+ToggleIcon.MouseButton1Click:Connect(function()
+    if guiOpen then
+        closeGui()
+    else
+        openGui()
+    end
+end)
+
+-- Клик по крестику — закрыть (иконка остаётся)
+CloseBtn.MouseButton1Click:Connect(closeGui)
+
+-- // ================= ПЕРЕТАСКИВАНИЕ ОКНА =================
+local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- // ================= ПЕРЕТАСКИВАНИЕ ИКОНКИ =================
+local iconDragging, iconDragStart, iconStartPos = false, nil, nil
+
+ToggleIcon.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        iconDragging = true
+        iconDragStart = input.Position
+        iconStartPos = ToggleIcon.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                iconDragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if iconDragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - iconDragStart
+        ToggleIcon.Position = UDim2.new(
+            iconStartPos.X.Scale, iconStartPos.X.Offset + delta.X,
+            iconStartPos.Y.Scale, iconStartPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- // ================= ОСНОВНАЯ ЛОГИКА =================
+
+-- Запомнить текущую позицию
+local function saveCurrentPosition()
+    local char = LocalPlayer.Character
+    if not char then return false end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    savedCFrame = hrp.CFrame
+    return true
+end
+
+-- После респавна — телепорт обратно
+local function onCharacterAdded(character)
+    if not isActive or not savedCFrame then return end
+    setStatus("Респавн · возврат...", Color3.fromRGB(255, 200, 80))
+
+    local hrp = character:WaitForChild("HumanoidRootPart", 5)
+    if not hrp then return end
+
+    task.wait(CONFIG.TeleportDelay)
+
+    if hrp and hrp.Parent and savedCFrame then
+        hrp.CFrame = savedCFrame
+        setStatus("Активно · ждём смерть", Color3.fromRGB(80, 255, 120))
+    end
+end
+
+-- Полный цикл: сохранить -> сбросить -> вернуть
+local function activateImmortal()
+    -- 1) Сохраняем позицию
+    if not saveCurrentPosition() then
+        setStatus("Ошибка: нет персонажа", Color3.fromRGB(255, 80, 80))
+        return
+    end
+
+    isActive = true
+    setStatus("Активация · сброс...", Color3.fromRGB(255, 200, 80))
+
+    -- 2) Подключаем слушатель респавна
+    if characterConn then characterConn:Disconnect() end
+    characterConn = LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+    -- 3) Сбрасываем персонажа
+    task.wait(CONFIG.ResetDelay)
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Health = 0
+        else
+            char:BreakJoints()
+        end
+    end
+
+    -- UI
+    BtnText.Text = "🔄  ПОВТОРИТЬ"
+    BtnText.TextColor3 = Color3.fromRGB(80, 255, 120)
+    BtnStroke.Color = Color3.fromRGB(80, 255, 120)
+    ActionBtn.BackgroundColor3 = Color3.fromRGB(30, 55, 40)
+    BtnSubText.Text = "Нажми ещё раз для повтора"
+end
+
+-- Полное выключение
+local function deactivateImmortal()
+    isActive = false
+    if characterConn then
+        characterConn:Disconnect()
+        characterConn = nil
+    end
+    savedCFrame = nil
+
+    setStatus("Готов", Color3.fromRGB(150, 150, 160))
+    BtnText.Text = "♻️  АКТИВИРОВАТЬ"
+    BtnText.TextColor3 = Color3.fromRGB(200, 200, 210)
+    BtnStroke.Color = Color3.fromRGB(80, 80, 100)
+    ActionBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+    BtnSubText.Text = "Сохранит позицию и вернёт после смерти"
+end
+
+-- Обработчик кнопки
+ActionBtn.MouseButton1Click:Connect(function()
+    -- Анимация нажатия
+    TweenService:Create(ActionBtn, TweenInfo.new(0.1), {
+        BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    }):Play()
+    task.wait(0.1)
+
+    if isActive then
+        -- Уже активно — перезапускаем цикл (заново сохранить и сбросить)
+        activateImmortal()
+    else
+        activateImmortal()
+    end
+end)
+
+-- ПКМ по кнопке — выключить
+ActionBtn.MouseButton2Click:Connect(deactivateImmortal)
+
+-- // ================= ЗАЩИТА ОТ ДУБЛЕЙ ПРИ РЕСПАВНЕ =================
+LocalPlayer.CharacterAdded:Connect(function()
+    -- Если GUI вдруг удалился (например, ResetOnSpawn сработал) — пересоздаём
+    task.wait(0.5)
+    if not PlayerGui:FindFirstChild("MM2_Immortal") then
+        -- На всякий случай сообщим в консоль
+        warn("[MM2 Immortal] GUI был удалён. Перезапусти скрипт.")
+    end
+end)
+
+print("[MM2 Immortal] Скрипт загружен. Кнопка '⚡' слева — открыть/закрыть окно.")
