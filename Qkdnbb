@@ -1,0 +1,311 @@
+-- MM2 Tool: Валклач (wall-clutch)
+local P=game:GetService("Players")
+local UIS=game:GetService("UserInputService")
+local TW=game:GetService("TweenService")
+local RS=game:GetService("RunService")
+local LP=P.LocalPlayer
+local PG=LP:WaitForChild("PlayerGui")
+
+local CFG={Size=UDim2.new(0,240,0,180),Accent=Color3.fromRGB(80,200,255)}
+
+local guiOpen=true
+local isActive=false
+local jumpConn=nil
+local lastJump=0
+local Distance=9  -- по умолчанию 9 блоков
+
+local old=PG:FindFirstChild("MM2_WallClutch"); if old then old:Destroy() end
+
+local SG=Instance.new("ScreenGui")
+SG.Name="MM2_WallClutch"; SG.ResetOnSpawn=false; SG.IgnoreGuiInset=true
+SG.ZIndexBehavior=Enum.ZIndexBehavior.Sibling; SG.Parent=PG
+
+local function corner(p,r) local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,r); c.Parent=p; return c end
+local function stroke(p,c,t) local s=Instance.new("UIStroke"); s.Color=c; s.Thickness=t or 1.5; s.Parent=p; return s end
+
+-- Иконка
+local Icon=Instance.new("TextButton")
+Icon.Size=UDim2.new(0,42,0,42); Icon.Position=UDim2.new(0,16,0.35,-21)
+Icon.BackgroundColor3=Color3.fromRGB(25,25,35); Icon.BorderSizePixel=0
+Icon.Text="🧱"; Icon.TextColor3=CFG.Accent; Icon.TextSize=22
+Icon.Font=Enum.Font.GothamBold; Icon.AutoButtonColor=false; Icon.Parent=SG
+corner(Icon,21); stroke(Icon,CFG.Accent)
+
+-- Окно
+local MF=Instance.new("Frame")
+MF.Size=CFG.Size; MF.Position=UDim2.new(0.5,-120,0.5,-90)
+MF.BackgroundColor3=Color3.fromRGB(25,25,35); MF.BorderSizePixel=0
+MF.ClipsDescendants=true; MF.Parent=SG
+corner(MF,12); stroke(MF,CFG.Accent)
+
+local TB=Instance.new("TextLabel")
+TB.Size=UDim2.new(1,0,0,36); TB.BackgroundColor3=Color3.fromRGB(18,18,28)
+TB.BorderSizePixel=0; TB.Text="  🧱 ВАЛКЛАЧ"; TB.TextColor3=Color3.fromRGB(255,255,255)
+TB.TextSize=13; TB.Font=Enum.Font.GothamBold
+TB.TextXAlignment=Enum.TextXAlignment.Left; TB.Parent=MF
+corner(TB,12)
+
+local CB=Instance.new("TextButton")
+CB.Size=UDim2.new(0,26,0,26); CB.Position=UDim2.new(1,-32,0,5)
+CB.BackgroundColor3=Color3.fromRGB(200,60,60); CB.BorderSizePixel=0
+CB.Text="×"; CB.TextColor3=Color3.fromRGB(255,255,255); CB.TextSize=17
+CB.Font=Enum.Font.GothamBold; CB.AutoButtonColor=false; CB.Parent=TB
+corner(CB,13)
+
+local CT=Instance.new("Frame")
+CT.Size=UDim2.new(1,-16,1,-44); CT.Position=UDim2.new(0,8,0,40)
+CT.BackgroundTransparency=1; CT.Parent=MF
+
+-- Статус
+local StatusLbl=Instance.new("TextLabel")
+StatusLbl.Size=UDim2.new(1,0,0,16); StatusLbl.Position=UDim2.new(0,0,0,0)
+StatusLbl.BackgroundTransparency=1; StatusLbl.Text="Выключено"
+StatusLbl.TextColor3=Color3.fromRGB(150,150,160); StatusLbl.TextSize=10
+StatusLbl.Font=Enum.Font.Gotham; StatusLbl.TextXAlignment=Enum.TextXAlignment.Left; StatusLbl.Parent=CT
+
+-- Кнопка
+local MainBtn=Instance.new("TextButton")
+MainBtn.Size=UDim2.new(1,0,0,50); MainBtn.Position=UDim2.new(0,0,0,20)
+MainBtn.BackgroundColor3=Color3.fromRGB(35,35,50); MainBtn.BorderSizePixel=0
+MainBtn.Text=""; MainBtn.AutoButtonColor=false; MainBtn.Parent=CT
+corner(MainBtn,10); stroke(MainBtn,Color3.fromRGB(80,80,100))
+
+local MainTxt=Instance.new("TextLabel")
+MainTxt.Size=UDim2.new(1,0,0,24); MainTxt.Position=UDim2.new(0,0,0,5)
+MainTxt.BackgroundTransparency=1; MainTxt.Text="🧱  ВКЛЮЧИТЬ"
+MainTxt.TextColor3=Color3.fromRGB(200,200,210); MainTxt.TextSize=14
+MainTxt.Font=Enum.Font.GothamBold; MainTxt.Parent=MainBtn
+
+local MainSub=Instance.new("TextLabel")
+MainSub.Size=UDim2.new(1,0,0,14); MainSub.Position=UDim2.new(0,0,0,32)
+MainSub.BackgroundTransparency=1; MainSub.Text="Стена + взгляд + прыжок → отскок"
+MainSub.TextColor3=Color3.fromRGB(120,120,140); MainSub.TextSize=9
+MainSub.Font=Enum.Font.Gotham; MainSub.Parent=MainBtn
+
+-- Ползунок дистанции
+local DistLabel=Instance.new("TextLabel")
+DistLabel.Size=UDim2.new(1,0,0,14); DistLabel.Position=UDim2.new(0,0,0,80)
+DistLabel.BackgroundTransparency=1; DistLabel.Text="Дистанция: 9 блоков"
+DistLabel.TextColor3=Color3.fromRGB(200,200,210); DistLabel.TextSize=10
+DistLabel.Font=Enum.Font.GothamBold
+DistLabel.TextXAlignment=Enum.TextXAlignment.Left; DistLabel.Parent=CT
+
+local Slider=Instance.new("Frame")
+Slider.Size=UDim2.new(1,0,0,14); Slider.Position=UDim2.new(0,0,0,96)
+Slider.BackgroundColor3=Color3.fromRGB(40,40,55); Slider.BorderSizePixel=0
+Slider.Parent=CT
+corner(Slider,7)
+
+local Fill=Instance.new("Frame")
+Fill.Size=UDim2.new(9/50,0,1,0); Fill.BackgroundColor3=CFG.Accent
+Fill.BorderSizePixel=0; Fill.Parent=Slider
+corner(Fill,7)
+
+local Knob=Instance.new("Frame")
+Knob.Size=UDim2.new(0,12,0,12); Knob.Position=UDim2.new(9/50,-6,0.5,-6)
+Knob.BackgroundColor3=Color3.fromRGB(255,255,255); Knob.BorderSizePixel=0
+Knob.ZIndex=2; Knob.Parent=Slider
+corner(Knob,6)
+
+local function setDistFromX(x)
+    local rel=(x-Slider.AbsolutePosition.X)/Slider.AbsoluteSize.X
+    rel=math.clamp(rel,0,1)
+    Distance=math.floor(rel*50) -- 0..50 блоков
+    if Distance<1 then Distance=1 end
+    Fill.Size=UDim2.new(rel,0,1,0)
+    Knob.Position=UDim2.new(rel,-6,0.5,-6)
+    DistLabel.Text="Дистанция: "..Distance.." блоков"
+end
+
+local draggingSlider=false
+Slider.InputBegan:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+        draggingSlider=true
+        setDistFromX(i.Position.X)
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if draggingSlider and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+        setDistFromX(i.Position.X)
+    end
+end)
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+        draggingSlider=false
+    end
+end)
+
+-- ===== АНИМАЦИИ GUI =====
+local function openGui()
+    if guiOpen then return end
+    guiOpen=true; MF.Visible=true; MF.Size=UDim2.new(0,0,0,0)
+    TW:Create(MF,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=CFG.Size}):Play()
+end
+local function closeGui()
+    if not guiOpen then return end
+    guiOpen=false
+    local t=TW:Create(MF,TweenInfo.new(0.18,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)})
+    t:Play(); t.Completed:Connect(function() MF.Visible=false end)
+end
+
+Icon.MouseButton1Click:Connect(function() if guiOpen then closeGui() else openGui() end end)
+CB.MouseButton1Click:Connect(closeGui)
+
+-- Перетаскивание окна
+do
+    local drag,ds,sp=false,nil,nil
+    TB.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            drag=true; ds=i.Position; sp=MF.Position
+            i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then drag=false end end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+            local d=i.Position-ds
+            MF.Position=UDim2.new(sp.X.Scale,sp.X.Offset+d.X,sp.Y.Scale,sp.Y.Offset+d.Y)
+        end
+    end)
+end
+
+-- ===== ПРОВЕРКА СТЕНЫ =====
+local function getWall()
+    local char=LP.Character
+    if not char then return nil end
+    local hrp=char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+
+    local params=RaycastParams.new()
+    params.FilterType=Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances={char}
+
+    -- Луч вперёд от игрока (по направлению взгляда камеры)
+    local cam=workspace.CurrentCamera
+    local look=cam.CFrame.LookVector
+    -- Ограничиваем по горизонтали (убираем вертикаль)
+    look=Vector3.new(look.X,0,look.Z)
+    if look.Magnitude<0.01 then return nil end
+    look=look.Unit
+
+    local origin=hrp.Position
+    local dir=look*5 -- проверяем на 5 стадов вперёд
+
+    local result=workspace:Raycast(origin,dir,params)
+    if result and result.Instance and result.Instance:IsA("BasePart") then
+        -- Убеждаемся, что это "стена" — нормаль почти горизонтальна
+        local normal=result.Normal
+        local horizNormal=Vector3.new(normal.X,0,normal.Z)
+        if horizNormal.Magnitude>0.5 then
+            return result, look
+        end
+    end
+    return nil
+end
+
+-- ===== ОТСКОК =====
+local function doWallClutch()
+    local char=LP.Character
+    if not char then return end
+    local hrp=char:FindFirstChild("HumanoidRootPart")
+    local hum=char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+
+    local result,look=getWall()
+    if not result then
+        StatusLbl.Text="Нет стены впереди"
+        StatusLbl.TextColor3=Color3.fromRGB(255,120,120)
+        return
+    end
+
+    -- Отскок назад: направление = -look (обратно)
+    local backward=-look
+
+    -- Отключаем коллизию на миг, чтобы отлететь сквозь возможные препятствия
+    local parts={}
+    for _,p in ipairs(char:GetDescendants()) do
+        if p:IsA("BasePart") then
+            parts[p]=p.CanCollide
+            p.CanCollide=false
+        end
+    end
+
+    -- Телепорт назад на Distance блоков с физическим импульсом
+    local startPos=hrp.Position
+    local targetPos=startPos + backward*Distance
+
+    -- Проверяем, что не улетим в стену/пол — raycast вниз
+    local params=RaycastParams.new()
+    params.FilterType=Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances={char}
+    local downRay=workspace:Raycast(targetPos,Vector3.new(0,-50,0),params)
+    if downRay then
+        targetPos=Vector3.new(targetPos.X,downRay.Position.Y+3.5,targetPos.Z)
+    end
+
+    -- Плавный быстрый телепорт (несколько кадров)
+    local steps=6
+    for i=1,steps do
+        if not hrp.Parent then break end
+        local alpha=i/steps
+        hrp.CFrame=CFrame.new(startPos:Lerp(targetPos,alpha))
+        RS.RenderStepped:Wait()
+    end
+
+    -- Возвращаем коллизию
+    task.wait(0.05)
+    for p,val in pairs(parts) do
+        if p and p.Parent then p.CanCollide=val end
+    end
+
+    StatusLbl.Text="Отскок · "..Distance.." блоков"
+    StatusLbl.TextColor3=CFG.Accent
+end
+
+-- ===== ОБРАБОТКА ПРЫЖКА =====
+local function onJumpRequest()
+    if not isActive then return end
+    local now=tick()
+    if now-lastJump<0.3 then return end -- антиспам
+    lastJump=now
+    doWallClutch()
+end
+
+-- UIS.JumpRequest — срабатывает на пробел/кнопку прыжка
+local function onInputBegan(input,gpe)
+    if gpe then return end
+    if input.KeyCode==Enum.KeyCode.Space then
+        onJumpRequest()
+    end
+end
+
+UIS.InputBegan:Connect(onInputBegan)
+UIS.JumpRequest:Connect(onJumpRequest)
+
+-- ===== ВКЛ/ВЫКЛ =====
+local function activate()
+    isActive=true
+    MainTxt.Text="🧱  ВЫКЛЮЧИТЬ"
+    MainTxt.TextColor3=CFG.Accent
+    MainBtn.BackgroundColor3=Color3.fromRGB(25,45,55)
+    StatusLbl.Text="Активно · жду прыжок"
+    StatusLbl.TextColor3=CFG.Accent
+end
+
+local function deactivate()
+    isActive=false
+    MainTxt.Text="🧱  ВКЛЮЧИТЬ"
+    MainTxt.TextColor3=Color3.fromRGB(200,200,210)
+    MainBtn.BackgroundColor3=Color3.fromRGB(35,35,50)
+    StatusLbl.Text="Выключено"
+    StatusLbl.TextColor3=Color3.fromRGB(150,150,160)
+end
+
+MainBtn.MouseButton1Click:Connect(function()
+    if isActive then deactivate() else activate() end
+end)
+
+LP.CharacterAdded:Connect(function()
+    -- при респавне ничего не сбрасываем, режим остаётся
+end)
+
+print("[MM2 WallClutch] Загружено. Пробел у стены = отскок назад.")
