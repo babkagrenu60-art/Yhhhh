@@ -1,0 +1,275 @@
+local P=game:GetService("Players")
+local UIS=game:GetService("UserInputService")
+local RS=game:GetService("RunService")
+local LP=P.LocalPlayer
+local PG=LP:WaitForChild("PlayerGui")
+
+local guiOpen=true
+local espEnabled=false
+local analyzing=false
+local espBoxes={}
+local progress=0
+
+local old=PG:FindFirstChild("MM2_ESP");if old then old:Destroy() end
+local SG=Instance.new("ScreenGui")
+SG.Name="MM2_ESP";SG.ResetOnSpawn=false;SG.IgnoreGuiInset=true
+SG.ZIndexBehavior=Enum.ZIndexBehavior.Sibling;SG.Parent=PG
+
+local function corner(p,r) local c=Instance.new("UICorner");c.CornerRadius=UDim.new(0,r);c.Parent=p;return c end
+local function stroke(p,c,t) local s=Instance.new("UIStroke");s.Color=c;s.Thickness=t or 2;s.Parent=p;return s end
+
+-- Иконка
+local Icon=Instance.new("TextButton")
+Icon.Size=UDim2.new(0,44,0,44);Icon.Position=UDim2.new(0,16,0.5,-22)
+Icon.BackgroundColor3=Color3.fromRGB(25,25,35);Icon.BorderSizePixel=0
+Icon.Text="🎯";Icon.TextColor3=Color3.fromRGB(100,255,100);Icon.TextSize=22
+Icon.Font=Enum.Font.GothamBold;Icon.AutoButtonColor=false;Icon.Parent=SG
+corner(Icon,22);stroke(Icon,Color3.fromRGB(100,255,100))
+
+-- Окно
+local MF=Instance.new("Frame")
+MF.Size=UDim2.new(0,220,0,150);MF.Position=UDim2.new(0.5,-110,0.5,-75)
+MF.BackgroundColor3=Color3.fromRGB(25,25,35);MF.BorderSizePixel=0
+MF.ClipsDescendants=true;MF.Parent=SG
+corner(MF,12);stroke(MF,Color3.fromRGB(100,255,100))
+
+local TB=Instance.new("TextLabel")
+TB.Size=UDim2.new(1,0,0,34);TB.BackgroundColor3=Color3.fromRGB(18,18,28)
+TB.BorderSizePixel=0;TB.Text="  🎯 ESP РАМКИ";TB.TextColor3=Color3.fromRGB(255,255,255)
+TB.TextSize=12;TB.Font=Enum.Font.GothamBold
+TB.TextXAlignment=Enum.TextXAlignment.Left;TB.Parent=MF
+corner(TB,12)
+
+local CB=Instance.new("TextButton")
+CB.Size=UDim2.new(0,26,0,26);CB.Position=UDim2.new(1,-32,0,4)
+CB.BackgroundColor3=Color3.fromRGB(200,60,60);CB.BorderSizePixel=0
+CB.Text="×";CB.TextColor3=Color3.fromRGB(255,255,255);CB.TextSize=17
+CB.Font=Enum.Font.GothamBold;CB.AutoButtonColor=false;CB.Parent=TB
+corner(CB,13)
+
+-- Кнопка вкл/выкл
+local ToggleBtn=Instance.new("TextButton")
+ToggleBtn.Size=UDim2.new(1,-20,0,44);ToggleBtn.Position=UDim2.new(0,10,0,44)
+ToggleBtn.BackgroundColor3=Color3.fromRGB(35,55,40);ToggleBtn.BorderSizePixel=0
+ToggleBtn.Text="🎯  ВКЛЮЧИТЬ ESP";ToggleBtn.TextColor3=Color3.fromRGB(150,255,180)
+ToggleBtn.TextSize=14;ToggleBtn.Font=Enum.Font.GothamBold
+ToggleBtn.AutoButtonColor=false;ToggleBtn.Parent=MF
+corner(ToggleBtn,10)
+
+-- Прогресс-бар (изначально скрыт)
+local ProgressFrame=Instance.new("Frame")
+ProgressFrame.Size=UDim2.new(1,-20,0,28);ProgressFrame.Position=UDim2.new(0,10,0,94)
+ProgressFrame.BackgroundColor3=Color3.fromRGB(40,40,55);ProgressFrame.BorderSizePixel=0
+ProgressFrame.Visible=false;ProgressFrame.Parent=MF
+corner(ProgressFrame,8)
+
+local ProgressFill=Instance.new("Frame")
+ProgressFill.Size=UDim2.new(0,0,1,0);ProgressFill.BackgroundColor3=Color3.fromRGB(100,255,100)
+ProgressFill.BorderSizePixel=0;ProgressFill.Parent=ProgressFrame
+corner(ProgressFill,8)
+
+local ProgressLbl=Instance.new("TextLabel")
+ProgressLbl.Size=UDim2.new(1,0,1,0);ProgressLbl.BackgroundTransparency=1
+ProgressLbl.Text="Анализ... 0%";ProgressLbl.TextColor3=Color3.fromRGB(255,255,255)
+ProgressLbl.TextSize=12;ProgressLbl.Font=Enum.Font.GothamBold
+ProgressLbl.ZIndex=2;ProgressLbl.Parent=ProgressFrame
+
+-- Инфо снизу
+local Info=Instance.new("TextLabel")
+Info.Size=UDim2.new(1,-20,0,20);Info.Position=UDim2.new(0,10,0,126)
+Info.BackgroundTransparency=1;Info.Text="Рамки вокруг всех игроков"
+Info.TextColor3=Color3.fromRGB(150,150,170);Info.TextSize=10
+Info.Font=Enum.Font.Gotham;Info.TextXAlignment=Enum.TextXAlignment.Center;Info.Parent=MF
+
+Icon.MouseButton1Click:Connect(function() MF.Visible=not MF.Visible end)
+CB.MouseButton1Click:Connect(function() MF.Visible=false end)
+
+-- Перетаскивание
+do
+    local drag,ds,sp=false,nil,nil
+    TB.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            drag=true;ds=i.Position;sp=MF.Position
+            i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then drag=false end end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+            local d=i.Position-ds
+            MF.Position=UDim2.new(sp.X.Scale,sp.X.Offset+d.X,sp.Y.Scale,sp.Y.Offset+d.Y)
+        end
+    end)
+end
+
+-- ===== ESP ЛОГИКА =====
+local function createBox(plr)
+    local box=Instance.new("Frame")
+    box.Name="ESP_"..plr.Name
+    box.BackgroundTransparency=1
+    box.BorderSizePixel=0
+    box.Visible=false
+    box.ZIndex=10
+    box.Parent=SG
+
+    local s=Instance.new("UIStroke")
+    s.Color=Color3.fromRGB(0,255,80)
+    s.Thickness=2.5
+    s.Parent=box
+
+    local name=Instance.new("TextLabel")
+    name.Size=UDim2.new(1,0,0,16)
+    name.Position=UDim2.new(0,0,-20,0)
+    name.BackgroundTransparency=1
+    name.Text=plr.Name
+    name.TextColor3=Color3.fromRGB(0,255,80)
+    name.TextSize=12
+    name.Font=Enum.Font.GothamBold
+    name.TextStrokeTransparency=0
+    name.TextStrokeColor3=Color3.fromRGB(0,0,0)
+    name.Parent=box
+
+    return {frame=box,name=name,plr=plr}
+end
+
+local function removeBox(plr)
+    if espBoxes[plr] then
+        espBoxes[plr].frame:Destroy()
+        espBoxes[plr]=nil
+    end
+end
+
+local function updateBoxes()
+    if not espEnabled then return end
+    local cam=workspace.CurrentCamera
+    if not cam then return end
+
+    for _,plr in ipairs(P:GetPlayers()) do
+        if plr~=LP then
+            if not espBoxes[plr] then espBoxes[plr]=createBox(plr) end
+            local ref=espBoxes[plr]
+            local char=plr.Character
+            if char then
+                local hrp=char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local _,onScreen=cam:WorldToViewportPoint(hrp.Position)
+                    if onScreen then
+                        local head=char:FindFirstChild("Head")
+                        local topY=hrp.Position.Y+3
+                        local bottomY=hrp.Position.Y-3
+                        if head then topY=head.Position.Y+0.5 end
+                        if char:FindFirstChild("Humanoid") then
+                            bottomY=hrp.Position.Y-(char.Humanoid.HipHeight or 2)+0.5
+                        end
+
+                        local topScreen=cam:WorldToViewportPoint(Vector3.new(hrp.Position.X,topY,hrp.Position.Z))
+                        local bottomScreen=cam:WorldToViewportPoint(Vector3.new(hrp.Position.X,bottomY,hrp.Position.Z))
+
+                        local height=math.abs(topScreen.Y-bottomScreen.Y)
+                        local width=height*0.6
+
+                        ref.frame.Size=UDim2.new(0,width,0,height)
+                        ref.frame.Position=UDim2.new(0,topScreen.X-width/2,0,topScreen.Y)
+                        ref.frame.Visible=true
+                        ref.name.Visible=true
+                        ref.name.Text=plr.Name
+                    else
+                        ref.frame.Visible=false
+                    end
+                else
+                    ref.frame.Visible=false
+                end
+            else
+                ref.frame.Visible=false
+            end
+        end
+    end
+
+    for plr,_ in pairs(espBoxes) do
+        if not plr.Parent then removeBox(plr) end
+    end
+end
+
+-- ===== АНАЛИЗ (5 СЕК) =====
+local function runAnalysis()
+    analyzing=true
+    progress=0
+    ProgressFrame.Visible=true
+    ToggleBtn.Visible=false
+
+    local messages={
+        "Сканирую игроков...",
+        "Анализ персонажей...",
+        "Проверка позиций...",
+        "Калибровка рамок...",
+        "Загрузка ESP...",
+        "Финальная проверка...",
+    }
+
+    local totalTime=5
+    local startTick=tick()
+
+    task.spawn(function()
+        while analyzing do
+            local elapsed=tick()-startTick
+            progress=math.min(100,(elapsed/totalTime)*100)
+            ProgressFill.Size=UDim2.new(progress/100,0,1,0)
+
+            local msgIdx=math.min(#messages,math.floor((progress/100)*#messages)+1)
+            ProgressLbl.Text=messages[msgIdx].." "..math.floor(progress).."%"
+
+            if progress>=100 then
+                analyzing=false
+                break
+            end
+            task.wait(0.05)
+        end
+
+        -- Анализ завершён
+        task.wait(0.3)
+        ProgressLbl.Text="✅ Готово! 100%"
+        ProgressFill.BackgroundColor3=Color3.fromRGB(100,255,100)
+        task.wait(0.6)
+
+        ProgressFrame.Visible=false
+        ToggleBtn.Visible=true
+        espEnabled=true
+
+        ToggleBtn.Text="🎯  ВЫКЛЮЧИТЬ ESP"
+        ToggleBtn.BackgroundColor3=Color3.fromRGB(55,35,35)
+        ToggleBtn.TextColor3=Color3.fromRGB(255,150,150)
+        Info.Text="ESP активно · рамки видны"
+        Info.TextColor3=Color3.fromRGB(150,255,180)
+    end)
+end
+
+local function stopESP()
+    espEnabled=false
+    analyzing=false
+    ProgressFrame.Visible=false
+    ToggleBtn.Visible=true
+    ToggleBtn.Text="🎯  ВКЛЮЧИТЬ ESP"
+    ToggleBtn.BackgroundColor3=Color3.fromRGB(35,55,40)
+    ToggleBtn.TextColor3=Color3.fromRGB(150,255,180)
+    Info.Text="Рамки вокруг всех игроков"
+    Info.TextColor3=Color3.fromRGB(150,150,170)
+    for _,ref in pairs(espBoxes) do
+        ref.frame.Visible=false
+    end
+end
+
+-- Кнопка вкл/выкл
+ToggleBtn.MouseButton1Click:Connect(function()
+    if analyzing then return end
+    if espEnabled then
+        stopESP()
+    else
+        runAnalysis()
+    end
+end)
+
+-- Плавный цикл обновления рамок
+RS.RenderStepped:Connect(updateBoxes)
+
+P.PlayerRemoving:Connect(removeBox)
+
+print("[MM2 ESP] Загружено. Анализ 5 сек, потом рамки.")
