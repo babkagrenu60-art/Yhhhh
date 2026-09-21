@@ -1,0 +1,277 @@
+local P=game:GetService("Players")
+local UIS=game:GetService("UserInputService")
+local RS=game:GetService("RunService")
+local CAS=game:GetService("ContextActionService")
+local LP=P.LocalPlayer
+local PG=LP:WaitForChild("PlayerGui")
+
+local guiOpen=true
+local dashing=false
+local dashLoop=nil
+local savedJumpPower=50
+local savedWalkSpeed=16
+local dashSpeed=120
+local dashDuration=1.5
+local jumpBlocked=false
+
+local old=PG:FindFirstChild("MM2_Dash");if old then old:Destroy() end
+local SG=Instance.new("ScreenGui")
+SG.Name="MM2_Dash";SG.ResetOnSpawn=false;SG.IgnoreGuiInset=true
+SG.ZIndexBehavior=Enum.ZIndexBehavior.Sibling;SG.Parent=PG
+
+local function corner(p,r) local c=Instance.new("UICorner");c.CornerRadius=UDim.new(0,r);c.Parent=p;return c end
+local function stroke(p,c,t) local s=Instance.new("UIStroke");s.Color=c;s.Thickness=t or 1.5;s.Parent=p;return s end
+
+-- Иконка
+local Icon=Instance.new("TextButton")
+Icon.Size=UDim2.new(0,46,0,46);Icon.Position=UDim2.new(0,16,0.5,-23)
+Icon.BackgroundColor3=Color3.fromRGB(25,25,35);Icon.BorderSizePixel=0
+Icon.Text="💨";Icon.TextColor3=Color3.fromRGB(100,200,255);Icon.TextSize=24
+Icon.Font=Enum.Font.GothamBold;Icon.AutoButtonColor=false;Icon.Parent=SG
+corner(Icon,23);stroke(Icon,Color3.fromRGB(100,200,255))
+
+-- Окно
+local MF=Instance.new("Frame")
+MF.Size=UDim2.new(0,240,0,290);MF.Position=UDim2.new(0.5,-120,0.5,-145)
+MF.BackgroundColor3=Color3.fromRGB(25,25,35);MF.BorderSizePixel=0
+MF.ClipsDescendants=true;MF.Parent=SG
+corner(MF,12);stroke(MF,Color3.fromRGB(100,200,255))
+
+local TB=Instance.new("TextLabel")
+TB.Size=UDim2.new(1,0,0,36);TB.BackgroundColor3=Color3.fromRGB(18,18,28)
+TB.BorderSizePixel=0;TB.Text="  💨 РЫВОК";TB.TextColor3=Color3.fromRGB(255,255,255)
+TB.TextSize=13;TB.Font=Enum.Font.GothamBold
+TB.TextXAlignment=Enum.TextXAlignment.Left;TB.Parent=MF
+corner(TB,12)
+
+local CB=Instance.new("TextButton")
+CB.Size=UDim2.new(0,28,0,28);CB.Position=UDim2.new(1,-34,0,4)
+CB.BackgroundColor3=Color3.fromRGB(200,60,60);CB.BorderSizePixel=0
+CB.Text="×";CB.TextColor3=Color3.fromRGB(255,255,255);CB.TextSize=18
+CB.Font=Enum.Font.GothamBold;CB.AutoButtonColor=false;CB.Parent=TB
+corner(CB,14)
+
+local CT=Instance.new("Frame")
+CT.Size=UDim2.new(1,-16,1,-44);CT.Position=UDim2.new(0,8,0,40)
+CT.BackgroundTransparency=1;CT.Parent=MF
+
+-- Статус
+local StatusLbl=Instance.new("TextLabel")
+StatusLbl.Size=UDim2.new(1,0,0,18);StatusLbl.Position=UDim2.new(0,0,0,0)
+StatusLbl.BackgroundTransparency=1;StatusLbl.Text="Готов к рывку"
+StatusLbl.TextColor3=Color3.fromRGB(150,150,160);StatusLbl.TextSize=11
+StatusLbl.Font=Enum.Font.Gotham;StatusLbl.TextXAlignment=Enum.TextXAlignment.Left;StatusLbl.Parent=CT
+
+-- Главная кнопка РЫВОК
+local DashBtn=Instance.new("TextButton")
+DashBtn.Size=UDim2.new(1,0,0,54);DashBtn.Position=UDim2.new(0,0,0,24)
+DashBtn.BackgroundColor3=Color3.fromRGB(35,55,80);DashBtn.BorderSizePixel=0
+DashBtn.Text="💨  РЫВОК ВПЕРЁД";DashBtn.TextColor3=Color3.fromRGB(150,220,255)
+DashBtn.TextSize=14;DashBtn.Font=Enum.Font.GothamBold
+DashBtn.AutoButtonColor=false;DashBtn.Parent=CT
+corner(DashBtn,12);stroke(DashBtn,Color3.fromRGB(100,200,255))
+
+-- Кнопка СТОП (Завершить)
+local StopBtn=Instance.new("TextButton")
+StopBtn.Size=UDim2.new(1,0,0,44);StopBtn.Position=UDim2.new(0,0,0,84)
+StopBtn.BackgroundColor3=Color3.fromRGB(60,25,25);StopBtn.BorderSizePixel=0
+StopBtn.Text="⏹  ЗАВЕРШИТЬ";StopBtn.TextColor3=Color3.fromRGB(255,150,150)
+StopBtn.TextSize=13;StopBtn.Font=Enum.Font.GothamBold
+StopBtn.AutoButtonColor=false;StopBtn.Parent=CT
+corner(StopBtn,10);stroke(StopBtn,Color3.fromRGB(150,50,50))
+
+-- Инфо про прыжок
+local JumpInfo=Instance.new("TextLabel")
+JumpInfo.Size=UDim2.new(1,0,0,30);JumpInfo.Position=UDim2.new(0,0,0,136)
+JumpInfo.BackgroundColor3=Color3.fromRGB(30,30,42);JumpInfo.BorderSizePixel=0
+JumpInfo.Text="🚫 Прыжок заблокирован во время рывка\n🛑 Жми ЗАВЕРШИТЬ для остановки"
+JumpInfo.TextColor3=Color3.fromRGB(180,180,190);JumpInfo.TextSize=10
+JumpInfo.Font=Enum.Font.Gotham;JumpInfo.TextWrapped=true
+JumpInfo.TextYAlignment=Enum.TextYAlignment.Center;JumpInfo.Parent=CT
+corner(JumpInfo,8)
+
+-- Ползунок скорости
+local SpeedLbl=Instance.new("TextLabel")
+SpeedLbl.Size=UDim2.new(1,0,0,14);SpeedLbl.Position=UDim2.new(0,0,0,172)
+SpeedLbl.BackgroundTransparency=1;SpeedLbl.Text="Скорость: 120"
+SpeedLbl.TextColor3=Color3.fromRGB(200,200,210);SpeedLbl.TextSize=10
+SpeedLbl.Font=Enum.Font.GothamBold
+SpeedLbl.TextXAlignment=Enum.TextXAlignment.Left;SpeedLbl.Parent=CT
+
+local Slider=Instance.new("Frame")
+Slider.Size=UDim2.new(1,0,0,16);Slider.Position=UDim2.new(0,0,0,188)
+Slider.BackgroundColor3=Color3.fromRGB(40,40,55);Slider.BorderSizePixel=0;Slider.Parent=CT
+corner(Slider,8)
+
+local Fill=Instance.new("Frame")
+Fill.Size=UDim2.new(0.3,0,1,0);Fill.BackgroundColor3=Color3.fromRGB(100,200,255)
+Fill.BorderSizePixel=0;Fill.Parent=Slider
+corner(Fill,8)
+
+local Knob=Instance.new("Frame")
+Knob.Size=UDim2.new(0,14,0,14);Knob.Position=UDim2.new(0.3,-7,0.5,-7)
+Knob.BackgroundColor3=Color3.fromRGB(255,255,255);Knob.BorderSizePixel=0
+Knob.ZIndex=2;Knob.Parent=Slider
+corner(Knob,7)
+
+local function setSpeed(x)
+    local rel=(x-Slider.AbsolutePosition.X)/Slider.AbsoluteSize.X
+    rel=math.clamp(rel,0,1)
+    dashSpeed=math.floor(50+rel*250)
+    Fill.Size=UDim2.new(rel,0,1,0)
+    Knob.Position=UDim2.new(rel,-7,0.5,-7)
+    SpeedLbl.Text="Скорость: "..dashSpeed
+end
+
+local dragS=false
+Slider.InputBegan:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+        dragS=true;setSpeed(i.Position.X)
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if dragS and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+        setSpeed(i.Position.X)
+    end
+end)
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+        dragS=false
+    end
+end)
+
+-- Инфо внизу
+local Info=Instance.new("TextLabel")
+Info.Size=UDim2.new(1,0,0,30);Info.Position=UDim2.new(0,0,0,210)
+Info.BackgroundColor3=Color3.fromRGB(20,20,30);Info.BorderSizePixel=0
+Info.Text="Направление = куда смотрит камера.\nДлительность: 1.5 сек."
+Info.TextColor3=Color3.fromRGB(150,150,165);Info.TextSize=10
+Info.Font=Enum.Font.Gotham;Info.TextWrapped=true
+Info.TextYAlignment=Enum.TextYAlignment.Center;Info.Parent=CT
+corner(Info,8)
+
+Icon.MouseButton1Click:Connect(function() MF.Visible=not MF.Visible end)
+CB.MouseButton1Click:Connect(function() MF.Visible=false end)
+
+do
+    local drag,ds,sp=false,nil,nil
+    TB.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            drag=true;ds=i.Position;sp=MF.Position
+            i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then drag=false end end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+            local d=i.Position-ds
+            MF.Position=UDim2.new(sp.X.Scale,sp.X.Offset+d.X,sp.Y.Scale,sp.Y.Offset+d.Y)
+        end
+    end)
+end
+
+-- ===== БЛОКИРОВКА ПРЫЖКА ЧЕРЕЗ CAS =====
+local function blockJump(_,state)
+    if jumpBlocked then return Enum.ContextActionResult.Sink end
+    return Enum.ContextActionResult.Pass
+end
+CAS:BindAction("BlockJumpDash",blockJump,false,
+    Enum.PlayerActions.CharacterJump,
+    Enum.KeyCode.Space,
+    Enum.KeyCode.ButtonA)
+
+-- ===== РЫВОК =====
+local function startDash()
+    if dashing then return end
+    local char=LP.Character
+    if not char then return end
+    local hrp=char:FindFirstChild("HumanoidRootPart")
+    local hum=char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+
+    dashing=true
+    jumpBlocked=true
+    savedWalkSpeed=hum.WalkSpeed
+    savedJumpPower=hum.JumpPower
+
+    hum.JumpPower=0
+    hum.UseJumpPower=true
+    hum:SetStateEnabled(Enum.HumanoidStateType.Jumping,false)
+    hum:SetStateEnabled(Enum.HumanoidStateType.Freefall,false)
+
+    local cam=workspace.CurrentCamera
+    local look=cam.CFrame.LookVector
+    look=Vector3.new(look.X,0,look.Z)
+    if look.Magnitude<0.01 then look=Vector3.new(0,0,-1) end
+    look=look.Unit
+
+    hum.WalkSpeed=dashSpeed
+
+    DashBtn.Text="💨  АКТИВЕН..."
+    DashBtn.BackgroundColor3=Color3.fromRGB(80,50,30)
+    DashBtn.TextColor3=Color3.fromRGB(255,200,100)
+    StopBtn.BackgroundColor3=Color3.fromRGB(120,40,40)
+    StopBtn.Text="⏹  ЗАВЕРШИТЬ (АКТИВНО)"
+    StatusLbl.Text="Рывок · прыжок OFF"
+    StatusLbl.TextColor3=Color3.fromRGB(255,200,100)
+
+    local startTime=tick()
+    if dashLoop then dashLoop:Disconnect() end
+    dashLoop=RS.Heartbeat:Connect(function()
+        if not dashing then return end
+        local c=LP.Character
+        if not c then return end
+        local h=c:FindFirstChild("HumanoidRootPart")
+        local hu=c:FindFirstChildOfClass("Humanoid")
+        if not h or not hu then return end
+
+        hu.WalkSpeed=dashSpeed
+        hu.JumpPower=0
+        hu:SetStateEnabled(Enum.HumanoidStateType.Jumping,false)
+        hu:SetStateEnabled(Enum.HumanoidStateType.Freefall,false)
+
+        if hu:GetState()==Enum.HumanoidStateType.Jumping then
+            hu:ChangeState(Enum.HumanoidStateType.Running)
+        end
+
+        h.AssemblyLinearVelocity=Vector3.new(look.X*dashSpeed,h.AssemblyLinearVelocity.Y,look.Z*dashSpeed)
+
+        if tick()-startTime>=dashDuration then
+            stopDash()
+        end
+    end)
+end
+
+function stopDash()
+    if not dashing and not jumpBlocked then return end
+    dashing=false
+    jumpBlocked=false
+    if dashLoop then dashLoop:Disconnect();dashLoop=nil end
+
+    local char=LP.Character
+    if char then
+        local hum=char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed=savedWalkSpeed
+            hum.JumpPower=savedJumpPower
+            hum:SetStateEnabled(Enum.HumanoidStateType.Jumping,true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Freefall,true)
+        end
+    end
+
+    DashBtn.Text="💨  РЫВОК ВПЕРЁД"
+    DashBtn.BackgroundColor3=Color3.fromRGB(35,55,80)
+    DashBtn.TextColor3=Color3.fromRGB(150,220,255)
+    StopBtn.BackgroundColor3=Color3.fromRGB(60,25,25)
+    StopBtn.Text="⏹  ЗАВЕРШИТЬ"
+    StatusLbl.Text="Готов к рывку"
+    StatusLbl.TextColor3=Color3.fromRGB(150,150,160)
+end
+
+DashBtn.MouseButton1Click:Connect(startDash)
+StopBtn.MouseButton1Click:Connect(stopDash)
+
+LP.CharacterAdded:Connect(function()
+    if dashing then stopDash() end
+end)
+
+print("[MM2 Dash] Загружено. Рывок + кнопка ЗАВЕРШИТЬ.")
