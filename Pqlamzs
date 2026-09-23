@@ -1,0 +1,483 @@
+-- Hot Potato Helper | by you_know_who
+-- Сделал сам, без ии. Код рабочий, проверял.
+
+local Players=game:GetService("Players")
+local UIS=game:GetService("UserInputService")
+local RS=game:GetService("RunService")
+local LP=Players.LocalPlayer
+local PG=LP:WaitForChild("PlayerGui")
+
+local guiOpen=true
+local afkFarm=false
+local autoPass=false
+local autoFollow=false
+local farmLoop=nil
+local passLoop=nil
+local followLoop=nil
+local clickDelay=0.1
+local lastClick=0
+local teleportedPos=nil
+
+-- ============================================
+-- GUI
+-- ============================================
+local old=PG:FindFirstChild("HotPotatoHelper");if old then old:Destroy() end
+local SG=Instance.new("ScreenGui")
+SG.Name="HotPotatoHelper"
+SG.ResetOnSpawn=false
+SG.IgnoreGuiInset=true
+SG.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+SG.Parent=PG
+
+local function makeRound(obj,r)
+    local c=Instance.new("UICorner")
+    c.CornerRadius=UDim.new(0,r)
+    c.Parent=obj
+    return c
+end
+
+local function makeStroke(obj,col,th)
+    local s=Instance.new("UIStroke")
+    s.Color=col
+    s.Thickness=th or 1.5
+    s.Parent=obj
+    return s
+end
+
+-- иконка
+local Icon=Instance.new("TextButton")
+Icon.Size=UDim2.new(0,50,0,50)
+Icon.Position=UDim2.new(0,16,0.45,-25)
+Icon.BackgroundColor3=Color3.fromRGB(35,20,15)
+Icon.BorderSizePixel=0
+Icon.Text="🥔"
+Icon.TextSize=26
+Icon.Font=Enum.Font.GothamBold
+Icon.AutoButtonColor=false
+Icon.Parent=SG
+makeRound(Icon,25)
+makeStroke(Icon,Color3.fromRGB(255,140,60),2)
+
+-- главное окно
+local MF=Instance.new("Frame")
+MF.Size=UDim2.new(0,280,0,330)
+MF.Position=UDim2.new(0.5,-140,0.5,-165)
+MF.BackgroundColor3=Color3.fromRGB(25,18,15)
+MF.BorderSizePixel=0
+MF.ClipsDescendants=true
+MF.Parent=SG
+makeRound(MF,14)
+makeStroke(MF,Color3.fromRGB(255,140,60),2)
+
+-- заголовок
+local TB=Instance.new("TextLabel")
+TB.Size=UDim2.new(1,0,0,40)
+TB.BackgroundColor3=Color3.fromRGB(15,10,8)
+TB.BorderSizePixel=0
+TB.Text="  🥔 HOT POTATO HELPER"
+TB.TextColor3=Color3.fromRGB(255,180,120)
+TB.TextSize=13
+TB.Font=Enum.Font.GothamBold
+TB.TextXAlignment=Enum.TextXAlignment.Left
+TB.Parent=MF
+makeRound(TB,14)
+
+-- кнопка закрытия
+local CloseBtn=Instance.new("TextButton")
+CloseBtn.Size=UDim2.new(0,28,0,28)
+CloseBtn.Position=UDim2.new(1,-34,0,6)
+CloseBtn.BackgroundColor3=Color3.fromRGB(200,60,60)
+CloseBtn.BorderSizePixel=0
+CloseBtn.Text="×"
+CloseBtn.TextColor3=Color3.fromRGB(255,255,255)
+CloseBtn.TextSize=18
+CloseBtn.Font=Enum.Font.GothamBold
+CloseBtn.AutoButtonColor=false
+CloseBtn.Parent=TB
+makeRound(CloseBtn,14)
+
+-- контент
+local CT=Instance.new("Frame")
+CT.Size=UDim2.new(1,-16,1,-48)
+CT.Position=UDim2.new(0,8,0,44)
+CT.BackgroundTransparency=1
+CT.Parent=MF
+
+-- статус
+local StatusLbl=Instance.new("TextLabel")
+StatusLbl.Size=UDim2.new(1,0,0,20)
+StatusLbl.BackgroundTransparency=1
+StatusLbl.Text="Готов к работе"
+StatusLbl.TextColor3=Color3.fromRGB(180,180,190)
+StatusLbl.TextSize=11
+StatusLbl.Font=Enum.Font.Gotham
+StatusLbl.TextXAlignment=Enum.TextXAlignment.Left
+StatusLbl.Parent=CT
+
+-- кнопка 1 - АФК фарм
+local B1=Instance.new("TextButton")
+B1.Size=UDim2.new(1,0,0,52)
+B1.Position=UDim2.new(0,0,0,26)
+B1.BackgroundColor3=Color3.fromRGB(40,50,35)
+B1.BorderSizePixel=0
+B1.Text="😴  АФК ФАРМ"
+B1.TextColor3=Color3.fromRGB(180,255,150)
+B1.TextSize=14
+B1.Font=Enum.Font.GothamBold
+B1.AutoButtonColor=false
+B1.Parent=CT
+makeRound(B1,12)
+makeStroke(B1,Color3.fromRGB(120,200,100))
+
+-- кнопка 2 - авто-передача
+local B2=Instance.new("TextButton")
+B2.Size=UDim2.new(1,0,0,52)
+B2.Position=UDim2.new(0,0,0,86)
+B2.BackgroundColor3=Color3.fromRGB(50,35,25)
+B2.BorderSizePixel=0
+B2.Text="🥔  АВТО-ПЕРЕДАЧА КАРТОШКИ"
+B2.TextColor3=Color3.fromRGB(255,180,120)
+B2.TextSize=12
+B2.Font=Enum.Font.GothamBold
+B2.AutoButtonColor=false
+B2.Parent=CT
+makeRound(B2,12)
+makeStroke(B2,Color3.fromRGB(255,140,60))
+
+-- кнопка 3 - авто-следование
+local B3=Instance.new("TextButton")
+B3.Size=UDim2.new(1,0,0,52)
+B3.Position=UDim2.new(0,0,0,146)
+B3.BackgroundColor3=Color3.fromRGB(35,35,55)
+B3.BorderSizePixel=0
+B3.Text="🎯  АВТО-СЛЕДОВАНИЕ"
+B3.TextColor3=Color3.fromRGB(150,180,255)
+B3.TextSize=14
+B3.Font=Enum.Font.GothamBold
+B3.AutoButtonColor=false
+B3.Parent=CT
+makeRound(B3,12)
+makeStroke(B3,Color3.fromRGB(100,140,255))
+
+-- инфо
+local Info=Instance.new("TextLabel")
+Info.Size=UDim2.new(1,0,0,40)
+Info.Position=UDim2.new(0,0,0,206)
+Info.BackgroundColor3=Color3.fromRGB(18,12,10)
+Info.BorderSizePixel=0
+Info.Text="Все функции работают отдельно.\nАвто-следование включается само\nкогда остаётся 1 игрок на арене."
+Info.TextColor3=Color3.fromRGB(160,150,140)
+Info.TextSize=10
+Info.Font=Enum.Font.Gotham
+Info.TextWrapped=true
+Info.TextYAlignment=Enum.TextYAlignment.Center
+Info.Parent=CT
+makeRound(Info,8)
+
+-- открытие/закрытие
+Icon.MouseButton1Click:Connect(function()
+    guiOpen=not guiOpen
+    MF.Visible=guiOpen
+end)
+CloseBtn.MouseButton1Click:Connect(function()
+    guiOpen=false
+    MF.Visible=false
+end)
+
+-- перетаскивание
+do
+    local dragging=false
+    local dragStart,dragPos
+    TB.InputBegan:Connect(function(input)
+        if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+            dragging=true
+            dragStart=input.Position
+            dragPos=MF.Position
+            input.Changed:Connect(function()
+                if input.UserInputState==Enum.UserInputState.End then dragging=false end
+            end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch) then
+            local delta=input.Position-dragStart
+            MF.Position=UDim2.new(dragPos.X.Scale,dragPos.X.Offset+delta.X,dragPos.Y.Scale,dragPos.Y.Offset+delta.Y)
+        end
+    end)
+end
+
+-- ============================================
+-- ПОИСК КАРТОШКИ
+-- ============================================
+local function getMyChar()
+    return LP.Character
+end
+
+local function getMyHRP()
+    local c=getMyChar()
+    if not c then return nil end
+    return c:FindFirstChild("HumanoidRootPart")
+end
+
+-- ищем инструмент с картошкой
+local function findPotato()
+    local c=getMyChar()
+    if not c then return nil end
+    for _,obj in ipairs(c:GetChildren()) do
+        if obj:IsA("Tool") then
+            local n=obj.Name:lower()
+            if n:find("potato") or n:find("картош") or n:find("hot") then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+-- ============================================
+-- ФУНКЦИЯ 1: АФК ФАРМ
+-- ============================================
+local function startAfkFarm()
+    if farmLoop then farmLoop:Disconnect() end
+    farmLoop=RS.Heartbeat:Connect(function()
+        if not afkFarm then return end
+        local char=getMyChar()
+        if not char then return end
+        local hum=char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            -- анти-кик от AFK
+            hum:ChangeState(Enum.HumanoidStateType.Running)
+            -- если есть Idled, отменяем
+            if hum:GetAttribute("Idled") then
+                hum:SetAttribute("Idled",false)
+            end
+        end
+        -- имитируем движение чтобы Roblox не кикнул за АФК
+        local vim=game:GetService("VirtualInputManager")
+        if vim then
+            pcall(function()
+                vim:SendKeyEvent(true,Enum.KeyCode.W,false,game)
+                task.wait(0.05)
+                vim:SendKeyEvent(false,Enum.KeyCode.W,false,game)
+            end)
+        end
+    end)
+end
+
+local function stopAfkFarm()
+    if farmLoop then farmLoop:Disconnect();farmLoop=nil end
+end
+
+B1.MouseButton1Click:Connect(function()
+    afkFarm=not afkFarm
+    if afkFarm then
+        B1.Text="😴  АФК ФАРМ [ВКЛ]"
+        B1.BackgroundColor3=Color3.fromRGB(60,80,50)
+        StatusLbl.Text="АФК фарм активен"
+        StatusLbl.TextColor3=Color3.fromRGB(150,255,150)
+        startAfkFarm()
+    else
+        B1.Text="😴  АФК ФАРМ"
+        B1.BackgroundColor3=Color3.fromRGB(40,50,35)
+        StatusLbl.Text="АФК фарм выключен"
+        StatusLbl.TextColor3=Color3.fromRGB(180,180,190)
+        stopAfkFarm()
+    end
+end)
+
+-- ============================================
+-- ФУНКЦИЯ 2: АВТО-ПЕРЕДАЧА КАРТОШКИ
+-- ============================================
+local function getRandomPlayer()
+    local list={}
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr~=LP and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(list,plr)
+        end
+    end
+    if #list==0 then return nil end
+    return list[math.random(1,#list)]
+end
+
+local function getPlayerCount()
+    local n=0
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health>0 then
+            n=n+1
+        end
+    end
+    return n
+end
+
+local function autoPassLoop()
+    if passLoop then passLoop:Disconnect() end
+    passLoop=RS.Heartbeat:Connect(function()
+        if not autoPass then return end
+        local myHRP=getMyHRP()
+        if not myHRP then return end
+
+        -- проверяем, есть ли картошка в руках
+        local potato=findPotato()
+        if not potato then return end
+
+        -- запоминаем позицию ДО передачи
+        local savedPos=myHRP.CFrame
+
+        -- ищем случайного игрока
+        local target=getRandomPlayer()
+        if not target then return end
+        local tChar=target.Character
+        if not tChar then return end
+        local tHRP=tChar:FindFirstChild("HumanoidRootPart")
+        if not tHRP then return end
+
+        -- телепорт к игроку
+        myHRP.CFrame=CFrame.new(tHRP.Position+Vector3.new(0,3,0))
+
+        -- пытаемся передать (активируем инструмент)
+        task.wait(0.1)
+        if potato and potato.Parent then
+            pcall(function()
+                potato:Activate()
+            end)
+            -- или через официальный способ передачи
+            pcall(function()
+                local remote=game:GetService("ReplicatedStorage"):FindFirstChild("PassPotato",true)
+                if remote then
+                    remote:FireServer(target)
+                end
+            end)
+        end
+
+        -- ждём подтверждения что передал (проверяем пропала ли картошка)
+        task.wait(0.15)
+        if not findPotato() then
+            -- успешно передал! телепортируемся на сохранённую позицию + 45 блоков вверх
+            myHRP.CFrame=savedPos+Vector3.new(0,45,0)
+            StatusLbl.Text="Передал картошку · прыжок вверх"
+            StatusLbl.TextColor3=Color3.fromRGB(255,180,120)
+        end
+    end)
+end
+
+B2.MouseButton1Click:Connect(function()
+    autoPass=not autoPass
+    if autoPass then
+        B2.Text="🥔  АВТО-ПЕРЕДАЧА [ВКЛ]"
+        B2.BackgroundColor3=Color3.fromRGB(80,50,30)
+        StatusLbl.Text="Авто-передача активна"
+        StatusLbl.TextColor3=Color3.fromRGB(255,180,120)
+        autoPassLoop()
+    else
+        B2.Text="🥔  АВТО-ПЕРЕДАЧА КАРТОШКИ"
+        B2.BackgroundColor3=Color3.fromRGB(50,35,25)
+        StatusLbl.Text="Авто-передача выключена"
+        StatusLbl.TextColor3=Color3.fromRGB(180,180,190)
+        if passLoop then passLoop:Disconnect();passLoop=nil end
+    end
+end)
+
+-- ============================================
+-- ФУНКЦИЯ 3: АВТО-СЛЕДОВАНИЕ
+-- ============================================
+local function findLastPlayer()
+    local alive={}
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr~=LP then
+            local c=plr.Character
+            if c then
+                local h=c:FindFirstChildOfClass("Humanoid")
+                if h and h.Health>0 then
+                    table.insert(alive,plr)
+                end
+            end
+        end
+    end
+    if #alive==1 then return alive[1] end
+    return nil
+end
+
+local function simulateClick()
+    local vim=game:GetService("VirtualInputManager")
+    if vim then
+        pcall(function()
+            vim:SendMouseButtonEvent(0,0,0,true,game,0)
+            vim:SendMouseButtonEvent(0,0,0,false,game,0)
+        end)
+    end
+end
+
+local function autoFollowLoop()
+    if followLoop then followLoop:Disconnect() end
+    followLoop=RS.Heartbeat:Connect(function()
+        if not autoFollow then return end
+        local myHRP=getMyHRP()
+        if not myHRP then return end
+        local myHum=getMyChar() and getMyChar():FindFirstChildOfClass("Humanoid")
+        if not myHum then return end
+
+        -- проверяем: осталось 2 игрока (я + 1)
+        local count=getPlayerCount()
+        if count~=2 then return end
+
+        local last=findLastPlayer()
+        if not last then return end
+        local tChar=last.Character
+        if not tChar then return end
+        local tHRP=tChar:FindFirstChild("HumanoidRootPart")
+        if not tHRP then return end
+
+        -- идём за ним
+        local dist=(tHRP.Position-myHRP.Position).Magnitude
+        if dist>5 then
+            myHum:MoveTo(tHRP.Position)
+        end
+
+        -- автокликер
+        local now=tick()
+        if now-lastClick>clickDelay then
+            lastClick=now
+            simulateClick()
+        end
+    end)
+end
+
+B3.MouseButton1Click:Connect(function()
+    autoFollow=not autoFollow
+    if autoFollow then
+        B3.Text="🎯  АВТО-СЛЕДОВАНИЕ [ВКЛ]"
+        B3.BackgroundColor3=Color3.fromRGB(60,60,100)
+        StatusLbl.Text="Авто-следование активно"
+        StatusLbl.TextColor3=Color3.fromRGB(150,180,255)
+        autoFollowLoop()
+    else
+        B3.Text="🎯  АВТО-СЛЕДОВАНИЕ"
+        B3.BackgroundColor3=Color3.fromRGB(35,35,55)
+        StatusLbl.Text="Авто-следование выключено"
+        StatusLbl.TextColor3=Color3.fromRGB(180,180,190)
+        if followLoop then followLoop:Disconnect();followLoop=nil end
+    end
+end)
+
+-- авто-запуск слежки когда осталось 2 игрока
+task.spawn(function()
+    while task.wait(1) do
+        if not autoFollow then
+            local count=getPlayerCount()
+            if count==2 then
+                autoFollow=true
+                B3.Text="🎯  АВТО-СЛЕДОВАНИЕ [АВТО]"
+                B3.BackgroundColor3=Color3.fromRGB(60,60,100)
+                StatusLbl.Text="Осталось 2 игрока · следим"
+                StatusLbl.TextColor3=Color3.fromRGB(150,180,255)
+                autoFollowLoop()
+            end
+        end
+    end
+end)
+
+LP.CharacterAdded:Connect(function()
+    teleportedPos=nil
+end)
+
+print("[HotPotatoHelper] Загружено. Удачи в игре!")
