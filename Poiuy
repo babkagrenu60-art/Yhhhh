@@ -1,0 +1,334 @@
+-- ObbyAutoPlay — играет за тебя
+local Players=game:GetService("Players")
+local PathfindingService=game:GetService("PathfindingService")
+local RS=game:GetService("RunService")
+local LP=Players.LocalPlayer
+local PG=LP:WaitForChild("PlayerGui")
+
+local CONFIG={
+    AgentHeight=5,
+    AgentRadius=2,
+    AgentCanJump=true,
+    WaypointSpacing=4,
+    JumpThreshold=4,
+    StuckTimeLimit=3,
+    StuckDistance=1.5,
+    RepathCooldown=0.5,
+    PushForce=35,
+    MaxRetries=4,
+}
+
+local active=false
+local currentTarget=nil
+local currentPath=nil
+local waypoints={}
+local wpIndex=1
+local lastProgress=tick()
+local lastPos=nil
+local lastRepath=0
+local retries=0
+local mainLoop=nil
+
+local agentParams={
+    AgentHeight=CONFIG.AgentHeight,
+    AgentRadius=CONFIG.AgentRadius,
+    AgentCanJump=CONFIG.AgentCanJump,
+    AgentCanClimb=false,
+    WaypointSpacing=CONFIG.WaypointSpacing,
+    Costs={Water=math.huge},
+}
+
+-- GUI
+local old=PG:FindFirstChild("ObbyAuto");if old then old:Destroy() end
+local SG=Instance.new("ScreenGui")
+SG.Name="ObbyAuto";SG.ResetOnSpawn=false;SG.IgnoreGuiInset=true
+SG.ZIndexBehavior=Enum.ZIndexBehavior.Sibling;SG.Parent=PG
+
+local function cr(p,r) local c=Instance.new("UICorner");c.CornerRadius=UDim.new(0,r);c.Parent=p;return c end
+local function st(p,c,t) local s=Instance.new("UIStroke");s.Color=c;s.Thickness=t or 1.5;s.Parent=p;return s end
+
+local Icon=Instance.new("TextButton")
+Icon.Size=UDim2.new(0,50,0,50);Icon.Position=UDim2.new(0,16,0.5,-25)
+Icon.BackgroundColor3=Color3.fromRGB(20,20,30);Icon.BorderSizePixel=0
+Icon.Text="🤖";Icon.TextColor3=Color3.fromRGB(100,255,180);Icon.TextSize=26
+Icon.Font=Enum.Font.GothamBold;Icon.AutoButtonColor=false;Icon.Parent=SG
+cr(Icon,25);st(Icon,Color3.fromRGB(100,255,180))
+
+local MF=Instance.new("Frame")
+MF.Size=UDim2.new(0,240,0,180);MF.Position=UDim2.new(0.5,-120,0.5,-90)
+MF.BackgroundColor3=Color3.fromRGB(20,20,30);MF.BorderSizePixel=0
+MF.ClipsDescendants=true;MF.Parent=SG
+cr(MF,12);st(MF,Color3.fromRGB(100,255,180))
+
+local TB=Instance.new("TextLabel")
+TB.Size=UDim2.new(1,0,0,34);TB.BackgroundColor3=Color3.fromRGB(12,12,18)
+TB.BorderSizePixel=0;TB.Text="  🤖 OBBY AUTO-PLAY";TB.TextColor3=Color3.fromRGB(100,255,180)
+TB.TextSize=12;TB.Font=Enum.Font.GothamBold;TB.TextXAlignment=Enum.TextXAlignment.Left;TB.Parent=MF
+cr(TB,12)
+
+local CB=Instance.new("TextButton")
+CB.Size=UDim2.new(0,26,0,26);CB.Position=UDim2.new(1,-32,0,4)
+CB.BackgroundColor3=Color3.fromRGB(200,60,60);CB.BorderSizePixel=0
+CB.Text="×";CB.TextColor3=Color3.fromRGB(255,255,255);CB.TextSize=17
+CB.Font=Enum.Font.GothamBold;CB.AutoButtonColor=false;CB.Parent=TB;cr(CB,13)
+
+local CT=Instance.new("Frame")
+CT.Size=UDim2.new(1,-16,1,-44);CT.Position=UDim2.new(0,8,0,40)
+CT.BackgroundTransparency=1;CT.Parent=MF
+
+local StatusLbl=Instance.new("TextLabel")
+StatusLbl.Size=UDim2.new(1,0,0,18);StatusLbl.Position=UDim2.new(0,0,0,0)
+StatusLbl.BackgroundTransparency=1;StatusLbl.Text="Готов"
+StatusLbl.TextColor3=Color3.fromRGB(180,180,190);StatusLbl.TextSize=11
+StatusLbl.Font=Enum.Font.Gotham;StatusLbl.TextXAlignment=Enum.TextXAlignment.Left;StatusLbl.Parent=CT
+
+local MainBtn=Instance.new("TextButton")
+MainBtn.Size=UDim2.new(1,0,0,54);MainBtn.Position=UDim2.new(0,0,0,24)
+MainBtn.BackgroundColor3=Color3.fromRGB(30,55,40);MainBtn.BorderSizePixel=0
+MainBtn.Text="▶  ЗАПУСТИТЬ";MainBtn.TextColor3=Color3.fromRGB(100,255,180)
+MainBtn.TextSize=15;MainBtn.Font=Enum.Font.GothamBold;MainBtn.AutoButtonColor=false;MainBtn.Parent=CT
+cr(MainBtn,12);st(MainBtn,Color3.fromRGB(100,255,180))
+
+local Info=Instance.new("TextLabel")
+Info.Size=UDim2.new(1,0,0,50);Info.Position=UDim2.new(0,0,0,86)
+Info.BackgroundColor3=Color3.fromRGB(15,15,22);Info.BorderSizePixel=0
+Info.Text="🤖 Бот играет за тебя\n🎯 Ищет Checkpoint и Finish\n⏱️ Пересчитывает путь при застревании"
+Info.TextColor3=Color3.fromRGB(160,160,175);Info.TextSize=10
+Info.Font=Enum.Font.Gotham;Info.TextWrapped=true
+Info.TextYAlignment=Enum.TextYAlignment.Center;Info.Parent=CT
+cr(Info,8)
+
+Icon.MouseButton1Click:Connect(function() MF.Visible=not MF.Visible end)
+CB.MouseButton1Click:Connect(function() MF.Visible=false end)
+
+do
+    local d,ds,sp=false,nil,nil
+    TB.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            d=true;ds=i.Position;sp=MF.Position
+            i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then d=false end end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if d and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+            local dd=i.Position-ds
+            MF.Position=UDim2.new(sp.X.Scale,sp.X.Offset+dd.X,sp.Y.Scale,sp.Y.Offset+dd.Y)
+        end
+    end)
+end
+
+-- ССЫЛКИ НА ПЕРСОНАЖА
+local function getChar()
+    local c=LP.Character
+    if not c then return nil,nil end
+    local h=c:FindFirstChildOfClass("Humanoid")
+    local hrp=c:FindFirstChild("HumanoidRootPart")
+    if not h or not hrp then return nil,nil end
+    return h,hrp
+end
+
+-- СБОР ЧЕКПОИНТОВ
+local function collectCheckpoints()
+    local list={}
+    for _,obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local n=obj.Name:lower()
+            if obj:IsA("SpawnLocation") or n:find("checkpoint") or n:find("finish") or n:find("goal") or n:find("stage") then
+                table.insert(list,obj)
+            end
+        end
+    end
+    table.sort(list,function(a,b) return a.Position.Y<b.Position.Y end)
+    return list
+end
+
+-- ВЫБОР СЛЕДУЮЩЕЙ ЦЕЛИ
+local function pickNextTarget()
+    local cps=collectCheckpoints()
+    if #cps==0 then return nil end
+    local _,hrp=getChar()
+    if not hrp then return nil end
+    local myPos=hrp.Position
+    local best,bestScore=nil,math.huge
+    for _,cp in ipairs(cps) do
+        local d=(cp.Position-myPos).Magnitude
+        local score=d-(cp.Position.Y-myPos.Y)*0.5
+        if score<bestScore then bestScore=score;best=cp end
+    end
+    return best
+end
+
+-- ПОСТРОЕНИЕ ПУТИ
+local function buildPath(targetPos)
+    local path=PathfindingService:CreatePath(agentParams)
+    local _,hrp=getChar()
+    if not hrp then return nil end
+    local ok,err=pcall(function()
+        path:ComputeAsync(hrp.Position,targetPos)
+    end)
+    if not ok then return nil end
+    if path.Status~=Enum.PathStatus.Success then return nil end
+    return path
+end
+
+-- ПРОВЕРКА ПРЫЖКА
+local function shouldJump(wp)
+    local h,hrp=getChar()
+    if not h or not hrp then return false end
+    if wp.Action==Enum.PathfindingWaypointAction.Jump then return true end
+    local diff=wp.Position.Y-hrp.Position.Y
+    if diff>2 then return true end
+    return false
+end
+
+-- ДВИЖЕНИЕ К ТОЧКЕ
+local function moveTo(wp)
+    local h,hrp=getChar()
+    if not h or not hrp then return false end
+    local pos=wp.Position
+    if shouldJump(wp) and h.FloorMaterial~=Enum.Material.Air then
+        h.Jump=true
+    end
+    h:MoveTo(pos)
+    local start=tick()
+    while tick()-start<5 do
+        h,hrp=getChar()
+        if not h or not hrp then return false end
+        local dist=(hrp.Position-pos).Magnitude
+        if dist<CONFIG.JumpThreshold then return true end
+        if tick()-lastProgress>CONFIG.StuckTimeLimit then return false end
+        task.wait(0.05)
+    end
+    return false
+end
+
+-- ЗАЩИТА ОТ ЗАСТРЕВАНИЯ
+local function checkStuck()
+    local _,hrp=getChar()
+    if not hrp then return false end
+    if not lastPos then lastPos=hrp.Position;return false end
+    local moved=(hrp.Position-lastPos).Magnitude
+    if moved>CONFIG.StuckDistance then
+        lastPos=hrp.Position
+        lastProgress=tick()
+        return false
+    end
+    if tick()-lastProgress>CONFIG.StuckTimeLimit then return true end
+    return false
+end
+
+-- ТОЛЧОК
+local function pushForward()
+    local h,hrp=getChar()
+    if not h or not hrp then return end
+    local dir=hrp.CFrame.LookVector
+    hrp.AssemblyLinearVelocity=dir*CONFIG.PushForce+Vector3.new(0,20,0)
+    h.Jump=true
+end
+
+-- ПЕРЕСЧЁТ
+local function repath()
+    local now=tick()
+    if now-lastRepath<CONFIG.RepathCooldown then return end
+    lastRepath=now
+    if not currentTarget then currentTarget=pickNextTarget() end
+    if not currentTarget then return end
+    retries=retries+1
+    if retries>CONFIG.MaxRetries then
+        currentTarget=pickNextTarget()
+        retries=0
+        return
+    end
+    local p=buildPath(currentTarget.Position)
+    if p then
+        currentPath=p
+        waypoints=p:GetWaypoints()
+        wpIndex=2
+        retries=0
+    end
+end
+
+-- ОСНОВНОЙ ЦИКЛ
+local function startLoop()
+    if mainLoop then mainLoop:Disconnect() end
+    mainLoop=task.spawn(function()
+        while active do
+            task.wait(0.1)
+            local h,hrp=getChar()
+            if not h or not hrp then task.wait(1);continue end
+
+            if checkStuck() then
+                StatusLbl.Text="Застрял · пересчёт..."
+                StatusLbl.TextColor3=Color3.fromRGB(255,200,80)
+                pushForward()
+                task.wait(0.3)
+                repath()
+                StatusLbl.Text="Работаю"
+                StatusLbl.TextColor3=Color3.fromRGB(100,255,180)
+            end
+
+            if not currentPath or wpIndex>#waypoints then
+                currentTarget=pickNextTarget()
+                if not currentTarget then
+                    StatusLbl.Text="Нет чекпоинтов"
+                    StatusLbl.TextColor3=Color3.fromRGB(255,120,120)
+                    task.wait(2)
+                    continue
+                end
+                local dist=(currentTarget.Position-hrp.Position).Magnitude
+                if dist<5 then
+                    currentTarget=pickNextTarget()
+                    task.wait(0.5)
+                    continue
+                end
+                currentPath=buildPath(currentTarget.Position)
+                if currentPath then
+                    waypoints=currentPath:GetWaypoints()
+                    wpIndex=2
+                else
+                    task.wait(1)
+                    continue
+                end
+            end
+
+            local wp=waypoints[wpIndex]
+            if wp then
+                moveTo(wp)
+                wpIndex=wpIndex+1
+            end
+        end
+    end)
+end
+
+MainBtn.MouseButton1Click:Connect(function()
+    active=not active
+    if active then
+        MainBtn.Text="⏹  ОСТАНОВИТЬ"
+        MainBtn.BackgroundColor3=Color3.fromRGB(80,30,30)
+        StatusLbl.Text="Работаю"
+        StatusLbl.TextColor3=Color3.fromRGB(100,255,180)
+        lastProgress=tick()
+        lastPos=nil
+        retries=0
+        startLoop()
+    else
+        MainBtn.Text="▶  ЗАПУСТИТЬ"
+        MainBtn.BackgroundColor3=Color3.fromRGB(30,55,40)
+        StatusLbl.Text="Остановлено"
+        StatusLbl.TextColor3=Color3.fromRGB(180,180,190)
+    end
+end)
+
+LP.CharacterAdded:Connect(function()
+    if active then
+        task.wait(2)
+        currentPath=nil
+        waypoints={}
+        wpIndex=1
+        currentTarget=nil
+        lastProgress=tick()
+        lastPos=nil
+    end
+end)
+
+print("[ObbyAuto] Загружено. Играет за тебя.")
