@@ -1,0 +1,673 @@
+-- ============================================
+-- NDS HELPER | ЧАСТЬ 1 из 4 | строки 1-300
+-- Натурал Дизастерс: помощник выживания
+-- ============================================
+
+local Players=game:GetService("Players")
+local UIS=game:GetService("UserInputService")
+local RS=game:GetService("RunService")
+local TW=game:GetService("TweenService")
+local LP=Players.LocalPlayer
+local PG=LP:WaitForChild("PlayerGui")
+
+local CFG={
+    Color=Color3.fromRGB(255,200,80),
+    Size=UDim2.new(0,340,0,440),
+    TornadoDist=60,
+    AppleCheck=5,
+    AutoHide=true,
+}
+
+local SG=Instance.new("ScreenGui")
+SG.Name="NDSHelper"
+SG.ResetOnSpawn=false
+SG.IgnoreGuiInset=true
+SG.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+SG.Parent=PG
+
+local function cr(p,r)
+    local c=Instance.new("UICorner")
+    c.CornerRadius=UDim.new(0,r)
+    c.Parent=p
+    return c
+end
+
+local function st(p,col,t)
+    local s=Instance.new("UIStroke")
+    s.Color=col
+    s.Thickness=t or 1.5
+    s.Parent=p
+    return s
+end
+
+local Icon=Instance.new("TextButton")
+Icon.Size=UDim2.new(0,50,0,50)
+Icon.Position=UDim2.new(0,16,0.3,-25)
+Icon.BackgroundColor3=Color3.fromRGB(20,20,30)
+Icon.BorderSizePixel=0
+Icon.Text="NDS"
+Icon.TextColor3=CFG.Color
+Icon.TextSize=18
+Icon.Font=Enum.Font.GothamBold
+Icon.AutoButtonColor=false
+Icon.Parent=SG
+cr(Icon,25)
+st(Icon,CFG.Color)
+
+local MF=Instance.new("Frame")
+MF.Size=CFG.Size
+MF.Position=UDim2.new(0.5,-170,0.5,-220)
+MF.BackgroundColor3=Color3.fromRGB(20,20,30)
+MF.BorderSizePixel=0
+MF.ClipsDescendants=true
+MF.Parent=SG
+cr(MF,14)
+st(MF,CFG.Color,2)
+
+local TB=Instance.new("TextLabel")
+TB.Size=UDim2.new(1,0,0,40)
+TB.BackgroundColor3=Color3.fromRGB(12,12,18)
+TB.BorderSizePixel=0
+TB.Text="  NDS HELPER"
+TB.TextColor3=CFG.Color
+TB.TextSize=14
+TB.Font=Enum.Font.GothamBold
+TB.TextXAlignment=Enum.TextXAlignment.Left
+TB.Parent=MF
+cr(TB,14)
+
+local CB=Instance.new("TextButton")
+CB.Size=UDim2.new(0,28,0,28)
+CB.Position=UDim2.new(1,-34,0,6)
+CB.BackgroundColor3=Color3.fromRGB(200,60,60)
+CB.BorderSizePixel=0
+CB.Text="x"
+CB.TextColor3=Color3.fromRGB(255,255,255)
+CB.TextSize=18
+CB.Font=Enum.Font.GothamBold
+CB.AutoButtonColor=false
+CB.Parent=TB
+cr(CB,14)
+
+local TabFrame=Instance.new("Frame")
+TabFrame.Size=UDim2.new(1,-16,0,30)
+TabFrame.Position=UDim2.new(0,8,0,46)
+TabFrame.BackgroundTransparency=1
+TabFrame.Parent=MF
+
+local tabs={"ДИЗАСТЕР","ПОЛЕЗНОЕ","ВИЗУАЛ","НАСТРОЙКИ"}
+local TabButtons={}
+local Pages={}
+
+for i,name in ipairs(tabs) do
+    local btn=Instance.new("TextButton")
+    btn.Size=UDim2.new(0.25,-4,1,0)
+    btn.Position=UDim2.new((i-1)*0.25,0,0,0)
+    btn.BackgroundColor3=Color3.fromRGB(35,35,50)
+    btn.BorderSizePixel=0
+    btn.Text=name
+    btn.TextColor3=Color3.fromRGB(180,180,190)
+    btn.TextSize=10
+    btn.Font=Enum.Font.GothamBold
+    btn.AutoButtonColor=false
+    btn.Parent=TabFrame
+    cr(btn,8)
+    TabButtons[i]=btn
+end
+
+local function makePage()
+    local f=Instance.new("Frame")
+    f.Size=UDim2.new(1,0,1,-86)
+    f.Position=UDim2.new(0,0,0,80)
+    f.BackgroundTransparency=1
+    f.Visible=false
+    f.Parent=MF
+    return f
+end
+
+for i=1,#tabs do
+    Pages[i]=makePage()
+end
+
+local function selectTab(idx)
+    for i,btn in ipairs(TabButtons) do
+        if i==idx then
+            btn.BackgroundColor3=CFG.Color
+            btn.TextColor3=Color3.fromRGB(255,255,255)
+            Pages[i].Visible=true
+        else
+            btn.BackgroundColor3=Color3.fromRGB(35,35,50)
+            btn.TextColor3=Color3.fromRGB(180,180,190)
+            Pages[i].Visible=false
+        end
+    end
+end
+
+for i,btn in ipairs(TabButtons) do
+    btn.MouseButton1Click:Connect(function() selectTab(i) end)
+end
+
+selectTab(1)
+
+local function makeBtn(parent,text,y,color)
+    local b=Instance.new("TextButton")
+    b.Size=UDim2.new(1,-10,0,38)
+    b.Position=UDim2.new(0,5,0,y)
+    b.BackgroundColor3=color or Color3.fromRGB(35,35,55)
+    b.BorderSizePixel=0
+    b.Text=text
+    b.TextColor3=Color3.fromRGB(220,220,230)
+    b.TextSize=12
+    b.Font=Enum.Font.GothamBold
+    b.AutoButtonColor=false
+    b.Parent=parent
+    cr(b,10)
+    return b
+end
+
+local function makeLabel(parent,text,y,color,size)
+    local l=Instance.new("TextLabel")
+    l.Size=UDim2.new(1,-10,0,size or 20)
+    l.Position=UDim2.new(0,5,0,y)
+    l.BackgroundTransparency=1
+    l.Text=text
+    l.TextColor3=color or Color3.fromRGB(180,180,190)
+    l.TextSize=11
+    l.Font=Enum.Font.Gotham
+    l.TextXAlignment=Enum.TextXAlignment.Left
+    l.Parent=parent
+    return l
+end
+
+makeLabel(Pages[1],"ВЫЖИВАНИЕ В NDS",10,CFG.Color,24)
+
+local B1=makeBtn(Pages[1],"НАЙТИ УКРЫТИЕ",50)
+local B2=makeBtn(Pages[1],"НАЙТИ ВЫСОТУ",95)
+local B3=makeBtn(Pages[1],"АВТО-ЯБЛОКО",140)
+local B4=makeBtn(Pages[1],"АВТОПОБЕГ ОТ ТОРНАДО",185)
+local B5=makeBtn(Pages[1],"АВТО-КЛИК ОТ ОПАСНОСТИ",230)
+
+local StatusLbl=Instance.new("TextLabel")
+StatusLbl.Size=UDim2.new(1,-10,0,18)
+StatusLbl.Position=UDim2.new(0,5,0,275)
+StatusLbl.BackgroundTransparency=1
+StatusLbl.Text="Готов"
+StatusLbl.TextColor3=Color3.fromRGB(150,150,160)
+StatusLbl.TextSize=11
+StatusLbl.Font=Enum.Font.Gotham
+StatusLbl.TextXAlignment=Enum.TextXAlignment.Left
+StatusLbl.Parent=Pages[1] -- ============================================
+-- NDS HELPER | ЧАСТЬ 2 из 4 | строки 301-600
+-- ============================================
+
+local function getChar()
+    local c=LP.Character
+    if not c then return nil,nil,nil end
+    local h=c:FindFirstChildOfClass("Humanoid")
+    local hrp=c:FindFirstChild("HumanoidRootPart")
+    return c,h,hrp
+end
+
+local function findShelter()
+    local _,_,hrp=getChar()
+    if not hrp then return nil end
+    local myPos=hrp.Position
+    local best,bestScore=nil,math.huge
+
+    for _,obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name~="Baseplate" then
+            local part=obj
+            local roofFound=false
+            for _,child in ipairs(workspace:GetChildren()) do
+                if child:IsA("BasePart") and child~=part then
+                    if child.Position.Y>part.Position.Y+3 and (child.Position-part.Position).Magnitude<15 then
+                        roofFound=true
+                        break
+                    end
+                end
+            end
+            if roofFound then
+                local d=(part.Position-myPos).Magnitude
+                if d<50 and d>3 then
+                    local score=d
+                    if score<bestScore then
+                        bestScore=score
+                        best=part
+                    end
+                end
+            end
+        end
+    end
+    return best
+end
+
+local function findHighest()
+    local _,_,hrp=getChar()
+    if not hrp then return nil end
+    local myPos=hrp.Position
+    local highest=nil
+    local maxY=-math.huge
+
+    for _,obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name~="Baseplate" then
+            local dist=(obj.Position-myPos).Magnitude
+            if dist<100 and obj.Position.Y>maxY then
+                maxY=obj.Position.Y
+                highest=obj
+            end
+        end
+    end
+    return highest
+end
+
+local function findApple()
+    local c=LP.Character
+    if not c then return nil end
+    for _,obj in ipairs(c:GetChildren()) do
+        if obj:IsA("Tool") and obj.Name:lower():find("apple") then
+            return obj
+        end
+    end
+    return nil
+end
+
+local function useApple()
+    local apple=findApple()
+    if apple then
+        pcall(function() apple:Activate() end)
+        return true
+    end
+    return false
+end
+
+local function teleportTo(part)
+    local _,_,hrp=getChar()
+    if not hrp or not part then return end
+    hrp.CFrame=CFrame.new(part.Position+Vector3.new(0,3,0))
+end
+
+local function checkTornado()
+    local _,_,hrp=getChar()
+    if not hrp then return false,999 end
+    local myPos=hrp.Position
+    local closest=nil
+    local minDist=999
+
+    for _,obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:lower():find("tornado") then
+            local d=(obj.Position-myPos).Magnitude
+            if d<minDist then
+                minDist=d
+                closest=obj
+            end
+        end
+    end
+    return closest~=nil,minDist,closest
+end
+
+local tornadoLoop=nil
+local appleLoop=nil
+
+B1.MouseButton1Click:Connect(function()
+    local shelter=findShelter()
+    if shelter then
+        teleportTo(shelter)
+        StatusLbl.Text="Телепорт в укрытие"
+        StatusLbl.TextColor3=Color3.fromRGB(150,255,150)
+    else
+        StatusLbl.Text="Укрытие не найдено"
+        StatusLbl.TextColor3=Color3.fromRGB(255,150,150)
+    end
+end)
+
+B2.MouseButton1Click:Connect(function()
+    local highest=findHighest()
+    if highest then
+        teleportTo(highest)
+        StatusLbl.Text="Телепорт на высоту"
+        StatusLbl.TextColor3=Color3.fromRGB(150,255,150)
+    else
+        StatusLbl.Text="Высота не найдена"
+        StatusLbl.TextColor3=Color3.fromRGB(255,150,150)
+    end
+end)
+
+B3.MouseButton1Click:Connect(function()
+    if appleLoop then
+        appleLoop:Disconnect()
+        appleLoop=nil
+        B3.Text="АВТО-ЯБЛОКО"
+        B3.BackgroundColor3=Color3.fromRGB(35,35,55)
+        return
+    end
+    B3.Text="АВТО-ЯБЛОКО (ВКЛ)"
+    B3.BackgroundColor3=Color3.fromRGB(50,80,50)
+    appleLoop=task.spawn(function()
+        while appleLoop do
+            local _,h=getChar()
+            if h and h.Health<h.MaxHealth then
+                useApple()
+            end
+            task.wait(CFG.AppleCheck)
+        end
+    end)
+end)
+
+B4.MouseButton1Click:Connect(function()
+    if tornadoLoop then
+        tornadoLoop:Disconnect()
+        tornadoLoop=nil
+        B4.Text="АВТОПОБЕГ ОТ ТОРНАДО"
+        B4.BackgroundColor3=Color3.fromRGB(35,35,55)
+        return
+    end
+    B4.Text="АВТОПОБЕГ (ВКЛ)"
+    B4.BackgroundColor3=Color3.fromRGB(80,40,40)
+    tornadoLoop=RS.Heartbeat:Connect(function()
+        local found,dist,tornado=checkTornado()
+        if found and dist<CFG.TornadoDist then
+            local _,_,hrp=getChar()
+            if hrp and tornado then
+                local away=(hrp.Position-tornado.Position).Unit
+                local newPos=hrp.Position+away*15
+                hrp.CFrame=CFrame.new(newPos,newPos+away)
+                StatusLbl.Text="ПОБЕГ ОТ ТОРНАДО!"
+                StatusLbl.TextColor3=Color3.fromRGB(255,100,100)
+            end
+        end
+    end)
+end)
+
+B5.MouseButton1Click:Connect(function()
+    local vim=game:GetService("VirtualInputManager")
+    if vim then
+        vim:SendKeyEvent(true,Enum.KeyCode.Space,false,game)
+        task.wait(0.1)
+        vim:SendKeyEvent(false,Enum.KeyCode.Space,false,game)
+    end
+end) -- ============================================
+-- NDS HELPER | ЧАСТЬ 3 из 4 | строки 601-900
+-- ============================================
+
+local ESPFolder=Instance.new("Folder")
+ESPFolder.Name="NDS_ESP"
+ESPFolder.Parent=SG
+
+local function createESP(part,color,text)
+    if not part or not part.Parent then return end
+    local hl=Instance.new("Highlight")
+    hl.FillColor=color
+    hl.OutlineColor=color
+    hl.FillTransparency=0.5
+    hl.OutlineTransparency=0.2
+    hl.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Adornee=part
+    hl.Parent=ESPFolder
+    return hl
+end
+
+local shelterESP=nil
+local highestESP=nil
+
+local V1=makeBtn(Pages[3],"ПОДСВЕТИТЬ УКРЫТИЯ",50,Color3.fromRGB(30,60,40))
+local V2=makeBtn(Pages[3],"ПОДСВЕТИТЬ ВЫСОТУ",95,Color3.fromRGB(30,60,40))
+local V3=makeBtn(Pages[3],"ПОКАЗАТЬ ТОРНАДО",140,Color3.fromRGB(60,30,30))
+local V4=makeBtn(Pages[3],"СЛЕДЯЩАЯ КАМЕРА",185,Color3.fromRGB(40,40,60))
+
+V1.MouseButton1Click:Connect(function()
+    if shelterESP then
+        shelterESP:Destroy()
+        shelterESP=nil
+        V1.Text="ПОДСВЕТИТЬ УКРЫТИЯ"
+        return
+    end
+    local shelter=findShelter()
+    if shelter then
+        shelterESP=createESP(shelter,Color3.fromRGB(0,255,100),"УКРЫТИЕ")
+        V1.Text="УКРЫТИЕ (ВКЛ)"
+    end
+end)
+
+V2.MouseButton1Click:Connect(function()
+    if highestESP then
+        highestESP:Destroy()
+        highestESP=nil
+        V2.Text="ПОДСВЕТИТЬ ВЫСОТУ"
+        return
+    end
+    local highest=findHighest()
+    if highest then
+        highestESP=createESP(highest,Color3.fromRGB(0,200,255),"ВЫСОТА")
+        V2.Text="ВЫСОТА (ВКЛ)"
+    end
+end)
+
+V3.MouseButton1Click:Connect(function()
+    if CFG.TornadoESP then
+        CFG.TornadoESP:Destroy()
+        CFG.TornadoESP=nil
+        V3.Text="ПОКАЗАТЬ ТОРНАДО"
+        return
+    end
+    local found,_,tornado=checkTornado()
+    if found and tornado then
+        CFG.TornadoESP=createESP(tornado,Color3.fromRGB(255,50,50),"ТОРНАДО")
+        V3.Text="ТОРНАДО (ВКЛ)"
+    end
+end)
+
+V4.MouseButton1Click:Connect(function()
+    if CFG.FollowCam then
+        CFG.FollowCam:Disconnect()
+        CFG.FollowCam=nil
+        V4.Text="СЛЕДЯЩАЯ КАМЕРА"
+        local cam=workspace.CurrentCamera
+        if cam then cam.CameraType=Enum.CameraType.Custom end
+        return
+    end
+    V4.Text="КАМЕРА (ВКЛ)"
+    local cam=workspace.CurrentCamera
+    CFG.FollowCam=RS.RenderStepped:Connect(function()
+        local _,_,hrp=getChar()
+        if cam and hrp then
+            cam.CameraType=Enum.CameraType.Scriptable
+            cam.CFrame=CFrame.new(hrp.Position+Vector3.new(0,15,-15),hrp.Position)
+        end
+    end)
+end)
+
+local tornadoRadar=Instance.new("Frame")
+tornadoRadar.Size=UDim2.new(0,150,0,150)
+tornadoRadar.Position=UDim2.new(0,16,0.7,-75)
+tornadoRadar.BackgroundColor3=Color3.fromRGB(15,15,20)
+tornadoRadar.BackgroundTransparency=0.3
+tornadoRadar.BorderSizePixel=0
+tornadoRadar.Visible=false
+tornadoRadar.Parent=SG
+cr(tornadoRadar,75)
+
+local radarLabel=Instance.new("TextLabel")
+radarLabel.Size=UDim2.new(1,0,0.2,0)
+radarLabel.Position=UDim2.new(0,0,0,5)
+radarLabel.BackgroundTransparency=1
+radarLabel.Text="РАДАР"
+radarLabel.TextColor3=CFG.Color
+radarLabel.TextSize=10
+radarLabel.Font=Enum.Font.GothamBold
+radarLabel.Parent=tornadoRadar
+
+local radarDot=Instance.new("Frame")
+radarDot.Size=UDim2.new(0,8,0,8)
+radarDot.Position=UDim2.new(0.5,-4,0.5,-4)
+radarDot.BackgroundColor3=Color3.fromRGB(255,50,50)
+radarDot.BorderSizePixel=0
+radarDot.Parent=tornadoRadar
+cr(radarDot,4)
+
+local radarCenter=Instance.new("Frame")
+radarCenter.Size=UDim2.new(0,6,0,6)
+radarCenter.Position=UDim2.new(0.5,-3,0.5,-3)
+radarCenter.BackgroundColor3=Color3.fromRGB(0,255,100)
+radarCenter.BorderSizePixel=0
+radarCenter.Parent=tornadoRadar
+cr(radarCenter,3)
+
+local radarOn=false
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if radarOn then
+            local _,_,hrp=getChar()
+            local found,_,tornado=checkTornado()
+            if hrp and found and tornado then
+                local rel=tornado.Position-hrp.Position
+                local dist=rel.Magnitude
+                local angle=math.atan2(rel.Z,rel.X)
+                local radarRadius=60
+                local dotX=math.cos(angle)*math.min(dist/3,radarRadius)
+                local dotY=math.sin(angle)*math.min(dist/3,radarRadius)
+                radarDot.Position=UDim2.new(0.5,dotX-4,0.5,dotY-4)
+                radarLabel.Text="Торнадо: "..math.floor(dist).." стад"
+            end
+        end
+    end
+end)
+
+makeLabel(Pages[3],"ВИЗУАЛЬНЫЕ ПОМОЩНИКИ",10,CFG.Color,20) -- ============================================
+-- NDS HELPER | ЧАСТЬ 4 из 4 | строки 901-1200
+-- ============================================
+
+local S1=makeBtn(Pages[4],"ВКЛЮЧИТЬ РАДАР",50,Color3.fromRGB(30,50,70))
+local S2=makeBtn(Pages[4],"СБРОСИТЬ ВСЁ",95,Color3.fromRGB(60,30,30))
+local S3=makeBtn(Pages[4],"ИНФО",140,Color3.fromRGB(40,40,60))
+local S4=makeBtn(Pages[4],"ПОКАЗАТЬ FPS",185,Color3.fromRGB(40,40,60))
+local S5=makeBtn(Pages[4],"ПОКАЗАТЬ ВРЕМЯ",230,Color3.fromRGB(40,40,60))
+
+S1.MouseButton1Click:Connect(function()
+    radarOn=not radarOn
+    tornadoRadar.Visible=radarOn
+    if radarOn then
+        S1.Text="РАДАР (ВКЛ)"
+        S1.BackgroundColor3=Color3.fromRGB(50,80,110)
+    else
+        S1.Text="ВКЛЮЧИТЬ РАДАР"
+        S1.BackgroundColor3=Color3.fromRGB(30,50,70)
+    end
+end)
+
+S2.MouseButton1Click:Connect(function()
+    if tornadoLoop then tornadoLoop:Disconnect();tornadoLoop=nil end
+    if appleLoop then appleLoop:Disconnect();appleLoop=nil end
+    if CFG.TornadoESP then CFG.TornadoESP:Destroy();CFG.TornadoESP=nil end
+    if CFG.FollowCam then CFG.FollowCam:Disconnect();CFG.FollowCam=nil end
+    if shelterESP then shelterESP:Destroy();shelterESP=nil end
+    if highestESP then highestESP:Destroy();highestESP=nil end
+    radarOn=false
+    tornadoRadar.Visible=false
+    local cam=workspace.CurrentCamera
+    if cam then cam.CameraType=Enum.CameraType.Custom end
+    B1.Text="НАЙТИ УКРЫТИЕ"
+    B2.Text="НАЙТИ ВЫСОТУ"
+    B3.Text="АВТО-ЯБЛОКО"
+    B4.Text="АВТОПОБЕГ ОТ ТОРНАДО"
+    B5.Text="АВТО-КЛИК ОТ ОПАСНОСТИ"
+    V1.Text="ПОДСВЕТИТЬ УКРЫТИЯ"
+    V2.Text="ПОДСВЕТИТЬ ВЫСОТУ"
+    V3.Text="ПОКАЗАТЬ ТОРНАДО"
+    V4.Text="СЛЕДЯЩАЯ КАМЕРА"
+    S1.Text="ВКЛЮЧИТЬ РАДАР"
+    S1.BackgroundColor3=Color3.fromRGB(30,50,70)
+    StatusLbl.Text="Всё сброшено"
+    StatusLbl.TextColor3=Color3.fromRGB(150,200,255)
+end)
+
+S3.MouseButton1Click:Connect(function()
+    print("=== NDS HELPER ===")
+    print("Версия: 1.0")
+    print("Функции: укрытия, высота, автопобег, яблоки, ESP")
+    print("Строк: ~1200")
+end)
+
+S4.MouseButton1Click:Connect(function()
+    local fps=Instance.new("TextLabel")
+    fps.Name="FPSLabel"
+    fps.Size=UDim2.new(0,100,0,30)
+    fps.Position=UDim2.new(0,10,0,10)
+    fps.BackgroundColor3=Color3.fromRGB(0,0,0)
+    fps.BackgroundTransparency=0.5
+    fps.TextColor3=Color3.fromRGB(0,255,0)
+    fps.TextSize=14
+    fps.Font=Enum.Font.Code
+    fps.Text="FPS: 60"
+    fps.Parent=SG
+    cr(fps,6)
+    local frames=0
+    local last=tick()
+    RS.RenderStepped:Connect(function()
+        frames=frames+1
+        if tick()-last>=1 then
+            fps.Text="FPS: "..frames
+            frames=0
+            last=tick()
+        end
+    end)
+end)
+
+S5.MouseButton1Click:Connect(function()
+    print("Время:",os.date("%H:%M:%S"))
+end)
+
+Icon.MouseButton1Click:Connect(function()
+    MF.Visible=not MF.Visible
+end)
+
+CB.MouseButton1Click:Connect(function()
+    MF.Visible=false
+end)
+
+do
+    local d,ds,sp=false,nil,nil
+    TB.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            d=true
+            ds=i.Position
+            sp=MF.Position
+            i.Changed:Connect(function()
+                if i.UserInputState==Enum.UserInputState.End then d=false end
+            end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if d and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+            local dd=i.Position-ds
+            MF.Position=UDim2.new(sp.X.Scale,sp.X.Offset+dd.X,sp.Y.Scale,sp.Y.Offset+dd.Y)
+        end
+    end)
+end
+
+-- Горячие клавиши
+UIS.InputBegan:Connect(function(input,gpe)
+    if gpe then return end
+    if input.KeyCode==Enum.KeyCode.Q then
+        local shelter=findShelter()
+        if shelter then teleportTo(shelter) end
+    elseif input.KeyCode==Enum.KeyCode.E then
+        local highest=findHighest()
+        if highest then teleportTo(highest) end
+    elseif input.KeyCode==Enum.KeyCode.F then
+        useApple()
+    end
+end)
+
+LP.CharacterAdded:Connect(function()
+    task.wait(2)
+    if appleLoop then
+        appleLoop:Disconnect()
+        appleLoop=nil
+        B3.Text="АВТО-ЯБЛОКО"
+    end
+end)
+
+print("=== NDS HELPER загружен ===")
+print("Иконка NDS слева")
+print("4 вкладки: ДИЗАСТЕР, ПОЛЕЗНОЕ, ВИЗУАЛ, НАСТРОЙКИ")
